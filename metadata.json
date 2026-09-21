@@ -1,0 +1,6 @@
+{
+  "name": "ContractGuard — Contract Renewal Reminder & Management",
+  "description": "Never Miss a Contract Renewal. Manage contracts, track renewal dates, automate reminders, monitor risks, and make smarter renewal decisions from one intelligent platform.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
