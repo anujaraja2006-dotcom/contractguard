@@ -16,6 +16,8 @@ import { ThankYouView } from './components/ThankYouView';
 import { AuthView } from './components/AuthView';
 import { AIAssistantDrawer } from './components/AIAssistantDrawer';
 import { FirstLoginLanguageModal } from './components/FirstLoginLanguageModal';
+import { Sidebar } from './components/Sidebar';
+import { EscalationsView } from './components/EscalationsView';
 
 import {
   mockContracts,
@@ -27,6 +29,7 @@ import {
   mockRenewalHistory,
   mockComments,
   mockNotifications,
+  mockCalendarEvents,
 } from './data/mockData';
 import {
   Contract,
@@ -53,8 +56,11 @@ import { CheckCircle2, AlertTriangle, X, Bell } from 'lucide-react';
 import { PageSequenceNavigator } from './components/PageSequenceNavigator';
 
 export function App() {
-  // Navigation & View State (Default to first page 'home')
-  const [currentTab, setCurrentTab] = useState<string>('home');
+  // Navigation & View State: The Calendar item is highlighted as user is in Calendar module
+  const [currentTab, setCurrentTab] = useState<string>('calendar');
+  const [isSidebarOpenMobile, setIsSidebarOpenMobile] = useState<boolean>(false);
+  const [calendarCategoryFilter, setCalendarCategoryFilter] = useState<string>('all');
+  const [calendarWorkspaceFilter, setCalendarWorkspaceFilter] = useState<string>('all');
   const [historyStack, setHistoryStack] = useState<string[]>([]);
   const [transitionDirection, setTransitionDirection] = useState<'forward' | 'backward'>('forward');
   const [isTransitioning, setIsTransitioning] = useState<boolean>(false);
@@ -358,6 +364,38 @@ export function App() {
     showToast(`Agreement pipeline advanced to stage "${nextStage}".`, 'info');
   };
 
+  // Immediate Escalation Action
+  const handleTriggerEscalation = (contract: Contract) => {
+    setContracts((prev) =>
+      prev.map((c) =>
+        c.id === contract.id
+          ? {
+              ...c,
+              riskLevel: 'Critical',
+              riskScore: Math.max(c.riskScore, 96),
+              renewalStatus: 'Critical Escalation',
+            }
+          : c
+      )
+    );
+
+    const escalationNotification: NotificationItem = {
+      id: `notif-esc-${Date.now()}`,
+      title: `⚠ Immediate Escalation: ${contract.name}`,
+      message: `Management and legal counsel alerted regarding critical cutoff for ${contract.name} (${contract.companyName}).`,
+      timestamp: 'Just now',
+      read: false,
+      type: 'escalation',
+      contractId: contract.id,
+    };
+    setNotifications((prev) => [escalationNotification, ...prev]);
+
+    showToast(
+      `Executive escalation dispatched for "${contract.name}". Manager and Admin notified.`,
+      'alert'
+    );
+  };
+
   // Reminder Actions
   const handleCompleteReminder = (id: string) => {
     setReminders((prev) =>
@@ -540,28 +578,57 @@ export function App() {
         </div>
       )}
 
-      {/* Main Top Navigation */}
-      <Navbar
-        currentTab={currentTab}
-        setCurrentTab={(tabId) => handleNavigate(tabId, 'forward')}
-        language={currentLanguage.code}
-        setLanguage={handleSelectLanguage}
-        t={t}
-        userRole={currentUser.role}
-        setUserRole={(role: UserRole) => {
-          setCurrentUser((prev) => ({ ...prev, role }));
-        }}
-        notifications={notifications}
-        onMarkNotificationRead={handleMarkNotificationRead}
-        onClearNotifications={handleClearNotifications}
-        onOpenAddContract={handleOpenAddContract}
-        onOpenAiAssistant={() => setIsAIAssistantOpen(true)}
-        onOpenLanguageModal={() => setIsFirstLoginLanguageOpen(true)}
-        currentUser={currentUser}
-        isAuthenticated={isAuthenticated}
-        onLogout={handleLogout}
-        onOpenAuth={handleOpenAuth}
-      />
+      {/* Main Top Navigation - Completely removed when viewing MARS Calendar as requested */}
+      {currentTab !== 'calendar' && (
+        <Navbar
+          currentTab={currentTab}
+          setCurrentTab={(tabId) => handleNavigate(tabId, 'forward')}
+          language={currentLanguage.code}
+          setLanguage={handleSelectLanguage}
+          t={t}
+          userRole={currentUser.role}
+          setUserRole={(role: UserRole) => {
+            setCurrentUser((prev) => ({ ...prev, role }));
+          }}
+          notifications={notifications}
+          onMarkNotificationRead={handleMarkNotificationRead}
+          onClearNotifications={handleClearNotifications}
+          onOpenAddContract={handleOpenAddContract}
+          onOpenAiAssistant={() => setIsAIAssistantOpen(true)}
+          onOpenLanguageModal={() => setIsFirstLoginLanguageOpen(true)}
+          currentUser={currentUser}
+          isAuthenticated={isAuthenticated}
+          onLogout={handleLogout}
+          onOpenAuth={handleOpenAuth}
+          onToggleSidebar={() => setIsSidebarOpenMobile((prev) => !prev)}
+        />
+      )}
+
+      {/* Left Navigation Sidebar - ONLY shown in Calendar module as requested */}
+      {currentTab === 'calendar' && (
+        <Sidebar
+          currentTab={currentTab}
+          onNavigate={(tabId) => handleNavigate(tabId, 'forward')}
+          isOpenMobile={isSidebarOpenMobile}
+          onCloseMobile={() => setIsSidebarOpenMobile(false)}
+          currentUser={currentUser}
+          contracts={contracts}
+          reminders={reminders}
+          t={t}
+          activeWorkspaceFilter={calendarWorkspaceFilter}
+          onSelectWorkspaceFilter={(ws) => {
+            setCalendarWorkspaceFilter(ws);
+          }}
+          activeCategoryFilter={calendarCategoryFilter}
+          onSelectCategoryFilter={(cat) => {
+            setCalendarCategoryFilter(cat);
+          }}
+          userRole={currentUser.role}
+          setUserRole={(role: UserRole) => {
+            setCurrentUser((prev) => ({ ...prev, role }));
+          }}
+        />
+      )}
 
       {/* Viewport-fixed Minimal Arrow-Only Page Navigation Controls */}
       <PageSequenceNavigator
@@ -574,6 +641,8 @@ export function App() {
       {/* Main View Area with Directional Slide & Fade Transition */}
       <main
         className={`flex-1 transition-all duration-400 ease-in-out ${
+          currentTab === 'calendar' ? 'lg:pl-64' : ''
+        } ${
           isTransitioning
             ? transitionDirection === 'forward'
               ? '-translate-x-5 opacity-0'
@@ -667,6 +736,29 @@ export function App() {
               setSelectedContract(contract);
               setIsDetailModalOpen(true);
             }}
+            onEditContract={handleOpenEditContract}
+            onRenewContract={handleQuickRenew}
+            onTriggerEscalation={handleTriggerEscalation}
+            initialEvents={mockCalendarEvents}
+            activeCategoryFilter={calendarCategoryFilter}
+            onSelectCategoryFilter={setCalendarCategoryFilter}
+            activeWorkspaceFilter={calendarWorkspaceFilter}
+            onSelectWorkspaceFilter={setCalendarWorkspaceFilter}
+            onToggleSidebar={() => setIsSidebarOpenMobile(true)}
+          />
+        )}
+
+        {currentTab === 'escalations' && (
+          <EscalationsView
+            contracts={contracts}
+            reminders={reminders}
+            t={t}
+            onSelectContract={(contract) => {
+              setSelectedContract(contract);
+              setIsDetailModalOpen(true);
+            }}
+            onNavigateToCalendar={() => handleNavigate('calendar', 'forward')}
+            onTriggerEscalation={handleTriggerEscalation}
           />
         )}
 
@@ -692,7 +784,7 @@ export function App() {
           />
         )}
 
-        {currentTab === 'workflow' && (
+        {(currentTab === 'workflow' || currentTab === 'renewals') && (
           <RenewalWorkflowView
             contracts={contracts}
             renewalHistory={renewalHistory}

@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MARS Calendar - Contract Renewal Reminder System</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <link rel="stylesheet" href="/static/css/calendar.css">
+</head>
+<body class="calendar-body">
+
+  <!-- 1. CALENDAR-ONLY SIDEBAR (Appears strictly on Calendar) -->
+  <aside class="mars-sidebar">
+    <div class="calendar-sidebar-header mars-sidebar-header">
+      <div class="mars-brand-title">MARS Calendar</div>
+    </div>
+
+    <div class="mars-sidebar-content">
+      <!-- MY WORKSPACE Section -->
+      <div>
+        <div class="sidebar-section-title">MY WORKSPACE</div>
+        <ul class="sidebar-nav-list">
+          <li class="sidebar-nav-item {% if active_workspace == 'upcoming' %}active{% endif %}" data-workspace="upcoming">
+            <span>Upcoming Renewals</span>
+            <span class="badge">12</span>
+          </li>
+          <li class="sidebar-nav-item {% if active_workspace == 'expiring' %}active{% endif %}" data-workspace="expiring">
+            <span>Expiring Soon</span>
+            <span class="badge">7</span>
+          </li>
+          <li class="sidebar-nav-item {% if active_workspace == 'expired' %}active{% endif %}" data-workspace="expired">
+            <span>Expired</span>
+            <span class="badge">3</span>
+          </li>
+          <li class="sidebar-nav-item {% if active_workspace == 'escalations' %}active{% endif %}" data-workspace="escalations">
+            <span>Escalations</span>
+            <span class="badge">2</span>
+          </li>
+        </ul>
+      </div>
+
+      <!-- CONTRACT CATEGORIES Section -->
+      <div>
+        <div class="sidebar-section-title">CONTRACT CATEGORIES</div>
+        <ul class="sidebar-nav-list">
+          {% for cat in categories %}
+          <li class="sidebar-category-item {% if active_category == cat %}active{% endif %}" data-category="{{ cat }}">
+            <span>{{ cat }}</span>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  </aside>
+
+  <!-- 2. MAIN CALENDAR WORKSPACE -->
+  <main class="calendar-main">
+    <!-- Top Calendar Toolbar -->
+    <header class="calendar-topbar">
+      <!-- Left side: Today, < Previous, > Next + LIVE TIME BADGE -->
+      <div class="topbar-left" style="display: flex; align-items: center; gap: 8px;">
+        <button id="btnToday" class="btn-today">Today</button>
+        <div class="nav-arrows">
+          <button class="btn-nav-arrow" title="Previous Week">&lt;</button>
+          <button class="btn-nav-arrow" title="Next Week">&gt;</button>
+        </div>
+        <div class="live-clock-badge" style="background: #0B1528; color: #fff; padding: 4px 10px; border-radius: 6px; font-family: monospace; font-size: 11px; font-weight: 700; display: flex; align-items: center; gap: 6px; border: 1px solid #334155;">
+          <span style="width: 6px; height: 6px; border-radius: 50%; background: #10B981; box-shadow: 0 0 6px #10B981;"></span>
+          <span style="color: #34D399; font-size: 9px; letter-spacing: 0.5px;">LIVE</span>
+          <span id="liveTimeText">--:--:--</span>
+        </div>
+      </div>
+
+      <!-- Centre: September 2026 & Multi-Year Navigation -->
+      <div class="topbar-center" style="display: flex; flex-direction: column; align-items: center;">
+        <div style="font-weight: 800; font-size: 15px; color: #0B1528;">
+          {{ current_month_name }}
+        </div>
+        <div style="display: flex; gap: 4px; font-size: 10px; font-family: monospace; margin-top: 2px;">
+          <span style="color: #64748B;">Years:</span>
+          <button type="button" class="year-chip" style="background: none; border: none; cursor: pointer; color: #64748B; padding: 0 3px;">2024</button>
+          <button type="button" class="year-chip" style="background: none; border: none; cursor: pointer; color: #64748B; padding: 0 3px;">2025</button>
+          <button type="button" class="year-chip active" style="background: #C84B31; color: #fff; border-radius: 4px; border: none; cursor: pointer; padding: 0 5px; font-weight: bold;">★ 2026</button>
+          <button type="button" class="year-chip" style="background: none; border: none; cursor: pointer; color: #64748B; padding: 0 3px;">2027</button>
+          <button type="button" class="year-chip" style="background: none; border: none; cursor: pointer; color: #64748B; padding: 0 3px;">2028</button>
+        </div>
+      </div>
+
+      <!-- Right side: View selector (YEAR -> MONTH -> WEEK -> DAY), Search, Refresh, Notifications, More, New Event -->
+      <div class="topbar-right">
+        <!-- View selector: YEAR -> MONTH -> WEEK -> DAY -->
+        <div class="view-selector">
+          <div class="view-option {% if view_type == 'Year' %}active{% endif %}" data-view="Year">Year</div>
+          <div class="view-option {% if view_type == 'Month' %}active{% endif %}" data-view="Month">Month</div>
+          <div class="view-option {% if view_type == 'Week' %}active{% endif %}" data-view="Week">Week</div>
+          <div class="view-option {% if view_type == 'Day' %}active{% endif %}" data-view="Day">Day</div>
+        </div>
+
+        <div class="topbar-actions">
+          <input 
+            type="text" 
+            id="calendarSearchInput" 
+            placeholder="Search contracts..." 
+            value="{{ search_query if search_query else '' }}"
+            style="border: 1px solid #E2E8F0; padding: 6px 12px; border-radius: 8px; font-size: 12px; outline: none; width: 160px;"
+          />
+          <button id="calendarRefreshBtn" class="btn-icon" title="Refresh Calendar">🔄</button>
+          <button class="btn-icon" title="Notifications">🔔</button>
+          <button class="btn-icon" title="More Options">⋯</button>
+          <button id="openAddEventBtn" class="btn-new-event">+ Schedule</button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Calendar Grid Workspace -->
+    <section class="calendar-grid-wrapper">
+      <!-- Day Columns Header: MON, TUE, WED, THU, FRI, SAT, SUN -->
+      <div class="grid-day-header">
+        <div class="grid-header-cell">
+          <span class="day-name">GMT</span>
+        </div>
+        <div class="grid-header-cell">
+          <div class="day-name">MON</div>
+          <div class="day-number">21</div>
+        </div>
+        <div class="grid-header-cell">
+          <div class="day-name">TUE</div>
+          <div class="day-number">22</div>
+        </div>
+        <div class="grid-header-cell">
+          <div class="day-name">WED</div>
+          <div class="day-number">23</div>
+        </div>
+        <div class="grid-header-cell">
+          <div class="day-name">THU</div>
+          <div class="day-number">24</div>
+        </div>
+        <div class="grid-header-cell is-today">
+          <div class="day-name" style="color: var(--mars-accent);">FRI</div>
+          <div class="day-number">25</div>
+        </div>
+        <div class="grid-header-cell">
+          <div class="day-name">SAT</div>
+          <div class="day-number">26</div>
+        </div>
+        <div class="grid-header-cell">
+          <div class="day-name">SUN</div>
+          <div class="day-number">27</div>
+        </div>
+      </div>
+
+      <!-- Scrollable Weekly Time Slots (8 AM - 6 PM) -->
+      <div class="grid-scroll-body">
+        <!-- Time slot labels column -->
+        <div class="time-slot-column">
+          <div class="time-slot-label">8 AM</div>
+          <div class="time-slot-label">9 AM</div>
+          <div class="time-slot-label">10 AM</div>
+          <div class="time-slot-label">11 AM</div>
+          <div class="time-slot-label">12 PM</div>
+          <div class="time-slot-label">1 PM</div>
+          <div class="time-slot-label">2 PM</div>
+          <div class="time-slot-label">3 PM</div>
+          <div class="time-slot-label">4 PM</div>
+          <div class="time-slot-label">5 PM</div>
+          <div class="time-slot-label">6 PM</div>
+        </div>
+
+        <!-- MONDAY Column (2026-09-21) -->
+        <div class="day-column" data-date="2026-09-21">
+          {% for i in range(11) %}<div class="hour-divider"></div>{% endfor %}
+          <!-- ABC Vendor Contract: Contract Review, 10:00 AM – 11:00 AM -->
+          <div class="event-card purple" style="top: 128px; height: 60px;"
+               onclick="openEventDetails(this)"
+               data-title="ABC Vendor Contract"
+               data-type="Contract Review"
+               data-contract="ABC Vendor Contract (AGT-ABC-2025-09)"
+               data-time="10:00 AM – 11:00 AM"
+               data-owner="Anuja"
+               data-status="Expiring Soon"
+               data-desc="Quarterly vendor review meeting to evaluate deliverables, SLA adherence, and contract extension terms."
+               data-days="5">
+            <span class="event-card-title">ABC Vendor Contract</span>
+            <span class="event-card-type">Contract Review</span>
+            <span class="event-card-time">10:00 AM – 11:00 AM</span>
+            <span class="event-card-owner">Owner: Anuja</span>
+          </div>
+        </div>
+
+        <!-- TUESDAY Column (2026-09-22) -->
+        <div class="day-column" data-date="2026-09-22">
+          {% for i in range(11) %}<div class="hour-divider"></div>{% endfor %}
+          <!-- Microsoft Software Licence: 30-Day Renewal Reminder, 11:00 AM -->
+          <div class="event-card orange" style="top: 192px; height: 60px;"
+               onclick="openEventDetails(this)"
+               data-title="Microsoft Software Licence"
+               data-type="30-Day Renewal Reminder"
+               data-contract="Microsoft Software Licence (LIC-MS-2024-88)"
+               data-time="11:00 AM – 12:00 PM"
+               data-owner="Anuja"
+               data-status="Active"
+               data-desc="Automated 30-day reminder threshold triggered. Initiate license true-up audit and seat provisioning forecast."
+               data-days="97">
+            <span class="event-card-title">Microsoft Licence</span>
+            <span class="event-card-type">30-Day Renewal Reminder</span>
+            <span class="event-card-time">11:00 AM</span>
+            <span class="event-card-owner">Owner: Anuja</span>
+          </div>
+        </div>
+
+        <!-- WEDNESDAY Column (2026-09-23) -->
+        <div class="day-column" data-date="2026-09-23">
+          {% for i in range(11) %}<div class="hour-divider"></div>{% endfor %}
+          <!-- Office Lease: Notice Period Deadline, 2:00 PM -->
+          <div class="event-card yellow" style="top: 384px; height: 60px;"
+               onclick="openEventDetails(this)"
+               data-title="Office Lease Agreement"
+               data-type="Notice Period Deadline"
+               data-contract="Office Lease Agreement (LSE-HQ-2021-01)"
+               data-time="2:00 PM – 3:00 PM"
+               data-owner="Anuja"
+               data-status="Expiring Soon"
+               data-desc="Mandatory 60-day notice window deadline for corporate headquarters lease renewal or non-renewal notification."
+               data-days="36">
+            <span class="event-card-title">Office Lease</span>
+            <span class="event-card-type">Notice Period Deadline</span>
+            <span class="event-card-time">2:00 PM</span>
+            <span class="event-card-owner">Owner: Anuja</span>
+          </div>
+        </div>
+
+        <!-- THURSDAY Column (2026-09-24) -->
+        <div class="day-column" data-date="2026-09-24">
+          {% for i in range(11) %}<div class="hour-divider"></div>{% endfor %}
+          <!-- XYZ Service Contract: Renewal Meeting, 3:00 PM – 4:00 PM -->
+          <div class="event-card purple" style="top: 448px; height: 60px;"
+               onclick="openEventDetails(this)"
+               data-title="XYZ Service Contract"
+               data-type="Renewal Meeting"
+               data-contract="XYZ Service Contract (SRV-XYZ-2025-14)"
+               data-time="3:00 PM – 4:00 PM"
+               data-owner="Anuja"
+               data-status="Under Review"
+               data-desc="Executive renewal negotiation with vendor directors regarding support tier level and revised annual pricing."
+               data-days="20">
+            <span class="event-card-title">XYZ Service Contract</span>
+            <span class="event-card-type">Renewal Meeting</span>
+            <span class="event-card-time">3:00 PM – 4:00 PM</span>
+            <span class="event-card-owner">Owner: Anuja</span>
+          </div>
+        </div>
+
+        <!-- FRIDAY Column (2026-09-25) TODAY -->
+        <div class="day-column is-today" data-date="2026-09-25">
+          {% for i in range(11) %}<div class="hour-divider"></div>{% endfor %}
+          
+          <!-- DEF Service Contract: Escalation Review (Critical) 9:00 AM -->
+          <div class="event-card red" style="top: 64px; height: 58px;"
+               onclick="openEventDetails(this)"
+               data-title="DEF Service Contract"
+               data-type="Escalation Deadline"
+               data-contract="DEF Service Contract (SRV-DEF-2024-99)"
+               data-time="9:00 AM – 10:00 AM"
+               data-owner="Anuja"
+               data-status="Escalated"
+               data-desc="Critical telecom dark fibre agreement at risk of non-renewal; requires immediate executive sign-off."
+               data-days="3">
+            <span class="event-card-title">DEF Service Contract</span>
+            <span class="event-card-type">Escalation Deadline</span>
+            <span class="event-card-time">9:00 AM – 10:00 AM</span>
+            <span class="event-card-owner">Owner: Anuja</span>
+          </div>
+
+          <!-- ABC Vendor Contract: Renewal Approval, 1:00 PM -->
+          <div class="event-card blue" style="top: 320px; height: 58px;"
+               onclick="openEventDetails(this)"
+               data-title="ABC Vendor Contract"
+               data-type="Renewal Approval"
+               data-contract="ABC Vendor Contract (AGT-ABC-2025-09)"
+               data-time="1:00 PM – 2:00 PM"
+               data-owner="Anuja"
+               data-status="Expiring Soon"
+               data-desc="Finance committee approval and electronic signature authorization."
+               data-days="5">
+            <span class="event-card-title">ABC Vendor Contract</span>
+            <span class="event-card-type">Renewal Approval</span>
+            <span class="event-card-time">1:00 PM – 2:00 PM</span>
+            <span class="event-card-owner">Owner: Anuja</span>
+          </div>
+
+          <!-- Client Agreement: Vendor Follow-up 4:00 PM -->
+          <div class="event-card green" style="top: 512px; height: 58px;"
+               onclick="openEventDetails(this)"
+               data-title="Client Agreement"
+               data-type="Vendor Follow-up"
+               data-contract="Client Agreement (CLI-ACME-2025-02)"
+               data-time="4:00 PM – 5:00 PM"
+               data-owner="Anuja"
+               data-status="Active"
+               data-desc="Quarterly client account check-in and satisfaction review."
+               data-days="66">
+            <span class="event-card-title">Client Agreement</span>
+            <span class="event-card-type">Vendor Follow-up</span>
+            <span class="event-card-time">4:00 PM – 5:00 PM</span>
+            <span class="event-card-owner">Owner: Anuja</span>
+          </div>
+        </div>
+
+        <!-- SATURDAY Column (2026-09-26) -->
+        <div class="day-column" data-date="2026-09-26">
+          {% for i in range(11) %}<div class="hour-divider"></div>{% endfor %}
+        </div>
+
+        <!-- SUNDAY Column (2026-09-27) -->
+        <div class="day-column" data-date="2026-09-27">
+          {% for i in range(11) %}<div class="hour-divider"></div>{% endfor %}
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- 3. CONTRACT DETAILS SIDE PANEL / DRAWER -->
+  <aside id="eventDetailDrawer" class="detail-drawer">
+    <div class="drawer-header">
+      <div>
+        <h3 id="drawerTitle" style="font-size: 15px; font-weight: 700; color: #0F172A;">Contract Details</h3>
+        <p id="drawerType" style="font-size: 12px; color: #64748B;">Contract Activity</p>
+      </div>
+      <button id="closeDrawerBtn" style="font-size: 18px; color: #94A3B8; cursor: pointer;">✕</button>
+    </div>
+
+    <div class="drawer-content">
+      <div>
+        <label style="font-size: 11px; font-weight: 700; color: #94A3B8; text-transform: uppercase;">Agreement Name</label>
+        <p id="drawerContract" style="font-size: 13px; font-weight: 600; color: #1E293B; margin-top: 2px;">-</p>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+        <div>
+          <label style="font-size: 11px; font-weight: 700; color: #94A3B8; text-transform: uppercase;">Time Slot</label>
+          <p id="drawerTime" style="font-size: 12px; font-weight: 600; color: #1E293B; margin-top: 2px;">-</p>
+        </div>
+        <div>
+          <label style="font-size: 11px; font-weight: 700; color: #94A3B8; text-transform: uppercase;">Owner</label>
+          <p id="drawerOwner" style="font-size: 12px; font-weight: 600; color: #1E293B; margin-top: 2px;">Anuja</p>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+        <div>
+          <label style="font-size: 11px; font-weight: 700; color: #94A3B8; text-transform: uppercase;">Status</label>
+          <p id="drawerStatus" style="font-size: 12px; font-weight: 600; color: #1E293B; margin-top: 2px;">-</p>
+        </div>
+        <div>
+          <label style="font-size: 11px; font-weight: 700; color: #94A3B8; text-transform: uppercase;">Days Remaining</label>
+          <p id="drawerDays" style="font-size: 12px; font-weight: 600; color: var(--mars-accent); margin-top: 2px;">-</p>
+        </div>
+      </div>
+
+      <div>
+        <label style="font-size: 11px; font-weight: 700; color: #94A3B8; text-transform: uppercase;">Activity Summary</label>
+        <p id="drawerDesc" style="font-size: 12px; color: #475569; line-height: 1.5; margin-top: 4px;">-</p>
+      </div>
+    </div>
+
+    <div class="drawer-footer">
+      <button style="flex: 1; padding: 9px; background-color: #F1F5F9; color: #0F172A; border-radius: 8px; font-size: 12px; font-weight: 600;">View Contract</button>
+      <button style="flex: 1; padding: 9px; background-color: var(--mars-accent); color: #FFFFFF; border-radius: 8px; font-size: 12px; font-weight: 600;">Quick Renew</button>
+      <button style="flex: 1; padding: 9px; background-color: #FEF2F2; color: #DC2626; border: 1px solid #FECACA; border-radius: 8px; font-size: 12px; font-weight: 600;">Escalate</button>
+    </div>
+  </aside>
+
+  <!-- 4. SCHEDULE ACTIVITY MODAL -->
+  <div id="addEventModal" class="modal-overlay">
+    <div class="modal-dialog">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h3 style="font-size: 16px; font-weight: 700; color: #0F172A;">Schedule Contract Activity</h3>
+        <button id="closeModalBtn" style="font-size: 16px; color: #94A3B8;">✕</button>
+      </div>
+      <form onsubmit="event.preventDefault(); alert('Event scheduled successfully!'); document.getElementById('addEventModal').classList.remove('open');">
+        <div style="margin-bottom: 12px;">
+          <label style="display: block; font-size: 12px; font-weight: 600; margin-bottom: 4px;">Contract</label>
+          <select style="width: 100%; padding: 8px; border: 1px solid #CBD5E1; border-radius: 6px;">
+            {% for c in contracts %}
+            <option value="{{ c.id }}">{{ c.name }} ({{ c.contract_number }})</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+          <div>
+            <label style="display: block; font-size: 12px; font-weight: 600; margin-bottom: 4px;">Event Type</label>
+            <select style="width: 100%; padding: 8px; border: 1px solid #CBD5E1; border-radius: 6px;">
+              <option value="review">Contract Review</option>
+              <option value="reminder">Renewal Reminder</option>
+              <option value="meeting">Renewal Meeting</option>
+              <option value="approval">Approval Session</option>
+              <option value="escalation">Escalation Audit</option>
+            </select>
+          </div>
+          <div>
+            <label style="display: block; font-size: 12px; font-weight: 600; margin-bottom: 4px;">Time</label>
+            <input type="text" value="10:00 AM" style="width: 100%; padding: 8px; border: 1px solid #CBD5E1; border-radius: 6px;">
+          </div>
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px;">
+          <button type="button" onclick="document.getElementById('addEventModal').classList.remove('open')" style="padding: 8px 16px; border: 1px solid #CBD5E1; border-radius: 6px; font-size: 13px;">Cancel</button>
+          <button type="submit" style="padding: 8px 16px; background-color: var(--mars-accent); color: white; border-radius: 6px; font-size: 13px; font-weight: 600;">Save Event</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="/static/js/calendar.js"></script>
+</body>
+</html>

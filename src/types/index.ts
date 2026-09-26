@@ -247,3 +247,40 @@ export interface CommentItem {
   timestamp: string;
   resolved?: boolean;
 }
+
+export type CalendarEventType =
+  | 'expiry'
+  | 'renewal'
+  | 'notice_period'
+  | 'reminder_30'
+  | 'reminder_15'
+  | 'reminder_7'
+  | 'escalation'
+  | 'meeting'
+  | 'review'
+  | 'other';
+
+export interface CalendarActivityEvent {
+  id: string;
+  title: string;
+  eventType: CalendarEventType;
+  date: string; // YYYY-MM-DD
+  time?: string; // e.g. "09:00", "11:30"
+  endTime?: string; // e.g. "10:00", "12:30"
+  durationMinutes?: number;
+  contractId?: string;
+  contractName?: string;
+  partyName?: string;
+  category?: string;
+  status?: string;
+  daysRemaining?: number;
+  reminderStatus?: string;
+  priority?: 'Critical' | 'High' | 'Medium' | 'Low';
+  noticePeriodDays?: number;
+  dotColor: 'red' | 'orange' | 'yellow' | 'green' | 'blue' | 'purple';
+  description?: string;
+  attendees?: string;
+  ownerName?: string;
+  requiresEscalation?: boolean;
+}
+

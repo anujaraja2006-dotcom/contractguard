@@ -15,6 +15,9 @@ import {
   ArrowLeft,
   ArrowRight,
   Info,
+  Settings as SettingsIcon,
+  Home as HomeIcon,
+  Menu,
 } from 'lucide-react';
 import { LanguageCode, NotificationItem, UserRole, UserProfile } from '../types';
 import { SUPPORTED_LANGUAGES } from '../i18n/languages';
@@ -38,6 +41,7 @@ interface NavbarProps {
   isAuthenticated?: boolean;
   onLogout?: () => void;
   onOpenAuth?: (mode?: 'login' | 'signup') => void;
+  onToggleSidebar?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -58,6 +62,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   isAuthenticated = true,
   onLogout,
   onOpenAuth,
+  onToggleSidebar,
 }) => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showRoleMenu, setShowRoleMenu] = useState(false);
@@ -135,8 +140,8 @@ export const Navbar: React.FC<NavbarProps> = ({
           </span>
         </div>
 
-        {/* Right side above near notification: About Us Link */}
-        <div className="shrink-0 flex items-center justify-end pl-2">
+        {/* Right side above near notification: About Us Link & Settings Link */}
+        <div className="shrink-0 flex items-center justify-end pl-2 gap-2">
           <button
             id="topbar-about-us-btn"
             onClick={() => setCurrentTab('about')}
@@ -150,6 +155,20 @@ export const Navbar: React.FC<NavbarProps> = ({
             <Info className="w-3.5 h-3.5 text-emerald-400" />
             <span>About Us</span>
           </button>
+
+          <button
+            id="topbar-settings-btn"
+            onClick={() => setCurrentTab('settings')}
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-semibold tracking-normal transition-all cursor-pointer ${
+              currentTab === 'settings'
+                ? 'bg-emerald-800 text-white shadow-xs'
+                : 'text-stone-300 hover:text-white hover:bg-white/10'
+            }`}
+            title="Settings - Organization, Languages, Notifications & Escalations"
+          >
+            <SettingsIcon className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Settings</span>
+          </button>
         </div>
       </div>
 
@@ -157,7 +176,19 @@ export const Navbar: React.FC<NavbarProps> = ({
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-18 sm:h-20">
           {/* Logo & Brand + Arrow Navigation Controls */}
-          <div className="flex items-center gap-4 sm:gap-8">
+          <div className="flex items-center gap-2 sm:gap-4 md:gap-8">
+            {/* Mobile Sidebar Hamburger Toggle */}
+            {onToggleSidebar && (
+              <button
+                type="button"
+                onClick={onToggleSidebar}
+                aria-label="Open sidebar menu"
+                className="lg:hidden p-2 rounded-lg text-stone-700 hover:text-stone-950 hover:bg-stone-100 border border-stone-200 transition-colors"
+              >
+                <Menu className="w-5 h-5" />
+              </button>
+            )}
+
             <button
               onClick={() => setCurrentTab('home')}
               className="group text-left flex items-center gap-2.5 cursor-pointer focus:outline-none"
@@ -201,19 +232,25 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {/* Right Action Controls */}
           <div className="flex items-center space-x-2 sm:space-x-3">
-            {/* AI Assistant Button */}
+            {/* Home Page Navigation Button near Languages Choosing */}
             <button
-              onClick={onOpenAiAssistant}
-              className="flex items-center gap-1.5 px-3.5 py-2 text-xs sm:text-sm font-semibold rounded-lg bg-[#243029] text-white hover:bg-[#1A231E] transition-all shadow-xs cursor-pointer"
-              title="AI Contract Assistant"
+              id="navbar-home-page-btn"
+              onClick={() => setCurrentTab('home')}
+              className={`flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-all cursor-pointer ${
+                currentTab === 'home' || currentTab === 'landing'
+                  ? 'bg-emerald-100 text-emerald-900 border border-emerald-300 font-bold shadow-2xs'
+                  : 'text-stone-700 hover:text-stone-900 hover:bg-stone-100 border border-stone-200/90'
+              }`}
+              title="Home Page"
             >
-              <Sparkles className="w-4 h-4 text-amber-300" />
-              <span className="hidden sm:inline">Ask AI</span>
+              <HomeIcon className="w-4 h-4 text-stone-600" />
+              <span>Home Page</span>
             </button>
 
-            {/* Language Selector Dropdown */}
+            {/* Language Selector Dropdown (Languages Choosing) */}
             <div className="relative">
               <button
+                id="navbar-languages-choosing-btn"
                 onClick={() => setShowLangMenu(!showLangMenu)}
                 className="flex items-center gap-2 px-3 py-2 text-xs sm:text-sm font-semibold rounded-lg bg-stone-100 hover:bg-stone-200/80 text-stone-800 border border-stone-200/90 transition-all cursor-pointer"
                 title="Change Interface Language (23 Indian Languages)"
@@ -229,15 +266,27 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <div className="absolute right-0 mt-2 w-72 max-h-84 overflow-y-auto bg-white rounded-xl shadow-xl border border-stone-200 p-2.5 z-50 animate-in fade-in zoom-in-95">
                   <div className="px-2.5 py-2 text-xs font-bold tracking-wider text-stone-500 uppercase flex items-center justify-between border-b border-stone-100 mb-1">
                     <span>Indian Languages (23)</span>
-                    <button
-                      onClick={() => {
-                        setShowLangMenu(false);
-                        onOpenLanguageModal();
-                      }}
-                      className="text-emerald-700 hover:underline cursor-pointer font-bold"
-                    >
-                      Grid View
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => {
+                          setShowLangMenu(false);
+                          setCurrentTab('home');
+                        }}
+                        className="text-stone-500 hover:text-stone-800 cursor-pointer font-semibold text-[11px]"
+                      >
+                        Home Page
+                      </button>
+                      <span className="text-stone-300">•</span>
+                      <button
+                        onClick={() => {
+                          setShowLangMenu(false);
+                          onOpenLanguageModal();
+                        }}
+                        className="text-emerald-700 hover:underline cursor-pointer font-bold"
+                      >
+                        Grid View
+                      </button>
+                    </div>
                   </div>
                   {SUPPORTED_LANGUAGES.map((l) => (
                     <button
@@ -275,6 +324,21 @@ export const Navbar: React.FC<NavbarProps> = ({
             >
               <Info className="w-4 h-4 text-stone-600" />
               <span>About Us</span>
+            </button>
+
+            {/* Settings Navigation Button near Notifications */}
+            <button
+              id="navbar-settings-btn"
+              onClick={() => setCurrentTab('settings')}
+              className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-all cursor-pointer ${
+                currentTab === 'settings'
+                  ? 'bg-emerald-100 text-emerald-900 border border-emerald-300 font-bold shadow-2xs'
+                  : 'text-stone-700 hover:text-stone-900 hover:bg-stone-100'
+              }`}
+              title="Application Settings"
+            >
+              <SettingsIcon className="w-4 h-4 text-stone-600" />
+              <span>Settings</span>
             </button>
 
             {/* Notifications Bell */}
@@ -365,15 +429,26 @@ export const Navbar: React.FC<NavbarProps> = ({
                     >
                       View Reminders
                     </button>
-                    <button
-                      onClick={() => {
-                        setShowNotifications(false);
-                        setCurrentTab('about');
-                      }}
-                      className="text-emerald-700 hover:underline cursor-pointer font-medium flex items-center gap-1"
-                    >
-                      About Us &amp; Escalations →
-                    </button>
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => {
+                          setShowNotifications(false);
+                          setCurrentTab('settings');
+                        }}
+                        className="hover:text-emerald-700 hover:underline cursor-pointer"
+                      >
+                        Alert Settings
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowNotifications(false);
+                          setCurrentTab('about');
+                        }}
+                        className="text-emerald-700 hover:underline cursor-pointer font-medium flex items-center gap-1"
+                      >
+                        About Us →
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}
@@ -461,9 +536,21 @@ export const Navbar: React.FC<NavbarProps> = ({
               </div>
             )}
 
+            {/* Ask AI Assistant Button near Add Contract */}
+            <button
+              id="navbar-ask-ai-btn"
+              onClick={onOpenAiAssistant}
+              className="flex items-center gap-1.5 px-3.5 py-2 text-xs sm:text-sm font-semibold rounded-lg bg-[#243029] text-white hover:bg-[#1A231E] transition-all shadow-xs cursor-pointer"
+              title="AI Contract Assistant"
+            >
+              <Sparkles className="w-4 h-4 text-amber-300" />
+              <span>Ask AI</span>
+            </button>
+
             {/* Quick Add Contract CTA */}
             {userRole !== 'Viewer' && (
               <button
+                id="navbar-add-contract-btn"
                 onClick={onOpenAddContract}
                 className="hidden sm:flex items-center gap-1.5 px-3.5 py-2 text-xs sm:text-sm font-semibold rounded-lg bg-[#243029] text-white hover:bg-[#1A231E] transition-all cursor-pointer shadow-xs"
               >

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ contract.name }} - Contract Details</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <span style="color: var(--mars-rust);">🛡️</span> Contract Renewal Reminder System
+    </div>
+    <div class="navbar-links">
+      <a href="/dashboard">Dashboard</a>
+      <a href="/contracts" class="active">Contracts</a>
+      <a href="/calendar">MARS Calendar</a>
+    </div>
+  </nav>
+
+  <div style="padding: 28px 32px; max-width: 900px; margin: 0 auto;">
+    <div style="margin-bottom: 20px;">
+      <a href="/contracts" style="color: var(--text-muted); font-size: 13px;">← Back to Contracts</a>
+      <h1 style="font-size: 22px; font-weight: 700; margin-top: 8px;">{{ contract.name }}</h1>
+      <span style="font-family: monospace; font-size: 12px; color: var(--text-muted);">{{ contract.contract_number }}</span>
+    </div>
+
+    <div style="background: white; border: 1px solid var(--border-light); border-radius: 10px; padding: 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+      <div>
+        <label style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Category</label>
+        <p style="font-size: 14px; font-weight: 600; margin-top: 4px;">{{ contract.category }}</p>
+      </div>
+      <div>
+        <label style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Counterparty</label>
+        <p style="font-size: 14px; font-weight: 600; margin-top: 4px;">{{ contract.party_name }}</p>
+      </div>
+      <div>
+        <label style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Expiry Date</label>
+        <p style="font-size: 14px; font-weight: 600; color: #DC2626; margin-top: 4px;">{{ contract.expiry_date }}</p>
+      </div>
+      <div>
+        <label style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Notice Period</label>
+        <p style="font-size: 14px; font-weight: 600; margin-top: 4px;">{{ contract.notice_period_days }} Days</p>
+      </div>
+      <div>
+        <label style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Contract Owner</label>
+        <p style="font-size: 14px; font-weight: 600; margin-top: 4px;">{{ contract.owner_name }}</p>
+      </div>
+      <div>
+        <label style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Annual Value</label>
+        <p style="font-size: 14px; font-weight: 600; margin-top: 4px;">${{ "{:,.2f}".format(contract.value) }} USD</p>
+      </div>
+      <div style="grid-column: span 2;">
+        <label style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Description</label>
+        <p style="font-size: 13px; color: #475569; margin-top: 4px; line-height: 1.5;">{{ contract.description or "No description provided." }}</p>
+      </div>
+    </div>
+
+    <div style="margin-top: 20px; display: flex; gap: 12px;">
+      <a href="/calendar" style="padding: 10px 18px; background-color: var(--mars-rust); color: white; border-radius: 8px; font-size: 13px; font-weight: 600; text-decoration: none;">View in MARS Calendar 📅</a>
+    </div>
+  </div>
+</body>
+</html>

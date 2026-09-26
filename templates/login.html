@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign In - MARS Calendar</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body style="display: flex; align-items: center; justify-content: center; min-height: 100vh; background-color: #0B1528;">
+  <div style="background: white; border-radius: 12px; width: 100%; max-width: 400px; padding: 32px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3);">
+    <div style="text-align: center; margin-bottom: 24px;">
+      <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #C84B31, #9A3412); border-radius: 8px; margin: 0 auto 12px auto; display: flex; align-items: center; justify-content: center; font-size: 20px; color: white;">📅</div>
+      <h1 style="font-size: 20px; font-weight: 700; color: #0F172A;">MARS Calendar</h1>
+      <p style="font-size: 13px; color: #64748B; margin-top: 4px;">Sign in to your enterprise account</p>
+    </div>
+
+    <form onsubmit="event.preventDefault(); window.location.href='/calendar';">
+      <div style="margin-bottom: 16px;">
+        <label style="display: block; font-size: 12px; font-weight: 600; color: #334155; margin-bottom: 6px;">Email address</label>
+        <input type="email" value="anuja@enterprise.com" required style="width: 100%; padding: 10px 12px; border: 1px solid #CBD5E1; border-radius: 8px; font-size: 13px; outline: none; box-sizing: border-box;">
+      </div>
+      <div style="margin-bottom: 20px;">
+        <label style="display: block; font-size: 12px; font-weight: 600; color: #334155; margin-bottom: 6px;">Password</label>
+        <input type="password" value="••••••••••••" required style="width: 100%; padding: 10px 12px; border: 1px solid #CBD5E1; border-radius: 8px; font-size: 13px; outline: none; box-sizing: border-box;">
+      </div>
+      <button type="submit" style="width: 100%; padding: 11px; background-color: #C84B31; color: white; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer;">Sign In</button>
+    </form>
+    <div style="margin-top: 20px; text-align: center;">
+      <a href="/calendar" style="font-size: 12px; color: #64748B; text-decoration: underline;">Continue as Guest (Anuja - Admin) →</a>
+    </div>
+  </div>
+</body>
+</html>

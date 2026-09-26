@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Building2,
   Globe,
@@ -51,6 +51,16 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     address: currentCompany.address || '',
   });
 
+  useEffect(() => {
+    setCompanyForm({
+      name: currentCompany.name,
+      gstin: currentCompany.gstin || '',
+      pan: currentCompany.pan || '',
+      cin: currentCompany.cin || '',
+      address: currentCompany.address || '',
+    });
+  }, [currentCompany]);
+
   const [notifications, setNotifications] = useState({
     emailAlerts: true,
     inAppAlerts: true,
@@ -59,12 +69,50 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     dailyDigest: true,
   });
 
+  const [escalationRules, setEscalationRules] = useState({
+    l1Days: '90, 60, 30',
+    l2Days: '15',
+    l3Days: '7, 1',
+  });
+
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const [savedTabMessage, setSavedTabMessage] = useState('');
 
   const handleSaveCompany = (e: React.FormEvent) => {
     e.preventDefault();
+    onCompanyChange({
+      ...currentCompany,
+      name: companyForm.name,
+      gstin: companyForm.gstin,
+      pan: companyForm.pan,
+      cin: companyForm.cin,
+      address: companyForm.address,
+    });
     setSavedSuccess(true);
-    setTimeout(() => setSavedSuccess(false), 2500);
+    setSavedTabMessage('Entity details saved!');
+    setTimeout(() => {
+      setSavedSuccess(false);
+      setSavedTabMessage('');
+    }, 2500);
+  };
+
+  const handleSaveNotifications = () => {
+    setSavedSuccess(true);
+    setSavedTabMessage('Notification preferences updated!');
+    setTimeout(() => {
+      setSavedSuccess(false);
+      setSavedTabMessage('');
+    }, 2500);
+  };
+
+  const handleSaveEscalation = (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavedSuccess(true);
+    setSavedTabMessage('Escalation rules calibrated!');
+    setTimeout(() => {
+      setSavedSuccess(false);
+      setSavedTabMessage('');
+    }, 2500);
   };
 
   return (
@@ -132,12 +180,44 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               </p>
             </div>
             {savedSuccess && (
-              <span className="text-xs text-emerald-800 font-semibold flex items-center gap-1">
-                <CheckCircle2 className="w-4 h-4" />
-                <span>Saved successfully!</span>
+              <span className="text-xs text-emerald-800 font-semibold flex items-center gap-1.5 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                <span>{savedTabMessage || 'Saved successfully!'}</span>
               </span>
             )}
           </div>
+
+          {/* Quick Active Company Switcher */}
+          {companies.length > 1 && (
+            <div className="p-4 rounded-xl bg-stone-50 border border-stone-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+              <div>
+                <span className="font-bold text-stone-800">Active Organization Profile</span>
+                <p className="text-stone-500 text-[11px]">Select which company entity you are reviewing or updating:</p>
+              </div>
+              <select
+                value={currentCompany.id}
+                onChange={(e) => {
+                  const found = companies.find((c) => c.id === e.target.value);
+                  if (found) {
+                    onCompanyChange(found);
+                    setSavedSuccess(true);
+                    setSavedTabMessage(`Switched to ${found.name}`);
+                    setTimeout(() => {
+                      setSavedSuccess(false);
+                      setSavedTabMessage('');
+                    }, 2000);
+                  }
+                }}
+                className="px-3 py-2 rounded-lg border border-stone-300 bg-white font-semibold text-stone-800 cursor-pointer text-xs"
+              >
+                {companies.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <form onSubmit={handleSaveCompany} className="space-y-4 max-w-2xl text-xs">
             <div>
@@ -254,13 +334,21 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
       {activeTab === 'notifications' && (
         <div className="bg-white p-6 sm:p-8 rounded-2xl border border-stone-200 shadow-xs space-y-6">
-          <div className="border-b border-stone-100 pb-3">
-            <h3 className="font-serif text-xl font-bold text-stone-900">
-              Dispatch &amp; Alert Channels
-            </h3>
-            <p className="text-xs text-stone-500">
-              Configure how employees, department managers, and executives receive expiry notices.
-            </p>
+          <div className="flex items-center justify-between border-b border-stone-100 pb-3">
+            <div>
+              <h3 className="font-serif text-xl font-bold text-stone-900">
+                Dispatch &amp; Alert Channels
+              </h3>
+              <p className="text-xs text-stone-500">
+                Configure how employees, department managers, and executives receive expiry notices.
+              </p>
+            </div>
+            {savedSuccess && (
+              <span className="text-xs text-emerald-800 font-semibold flex items-center gap-1.5 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                <span>{savedTabMessage || 'Preferences updated!'}</span>
+              </span>
+            )}
           </div>
 
           <div className="space-y-4 max-w-xl text-xs">
@@ -276,7 +364,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 type="checkbox"
                 checked={notifications.emailAlerts}
                 onChange={(e) => setNotifications({ ...notifications, emailAlerts: e.target.checked })}
-                className="w-4 h-4 text-[#243029]"
+                className="w-4 h-4 text-[#243029] rounded cursor-pointer"
               />
             </div>
 
@@ -292,7 +380,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 type="checkbox"
                 checked={notifications.whatsappAlerts}
                 onChange={(e) => setNotifications({ ...notifications, whatsappAlerts: e.target.checked })}
-                className="w-4 h-4 text-[#243029]"
+                className="w-4 h-4 text-[#243029] rounded cursor-pointer"
               />
             </div>
 
@@ -308,8 +396,34 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 type="checkbox"
                 checked={notifications.smsAlerts}
                 onChange={(e) => setNotifications({ ...notifications, smsAlerts: e.target.checked })}
-                className="w-4 h-4 text-[#243029]"
+                className="w-4 h-4 text-[#243029] rounded cursor-pointer"
               />
+            </div>
+
+            <div className="flex items-center justify-between p-3.5 rounded-xl bg-stone-50 border border-stone-200">
+              <div className="flex items-center gap-3">
+                <Bell className="w-5 h-5 text-amber-600" />
+                <div>
+                  <div className="font-semibold text-stone-900">Daily Digest Summary</div>
+                  <div className="text-stone-500 text-[11px]">Consolidated 9:00 AM IST morning overview of expiring agreements.</div>
+                </div>
+              </div>
+              <input
+                type="checkbox"
+                checked={notifications.dailyDigest}
+                onChange={(e) => setNotifications({ ...notifications, dailyDigest: e.target.checked })}
+                className="w-4 h-4 text-[#243029] rounded cursor-pointer"
+              />
+            </div>
+
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={handleSaveNotifications}
+                className="px-5 py-2.5 bg-[#243029] hover:bg-[#1A231E] text-white font-semibold uppercase tracking-wider text-xs rounded-lg transition-colors cursor-pointer"
+              >
+                Save Notification Channels
+              </button>
             </div>
           </div>
         </div>
@@ -317,34 +431,83 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
       {activeTab === 'escalation' && (
         <div className="bg-white p-6 sm:p-8 rounded-2xl border border-stone-200 shadow-xs space-y-6">
-          <div className="border-b border-stone-100 pb-3">
-            <h3 className="font-serif text-xl font-bold text-stone-900">
-              Escalation Window Customization
-            </h3>
-            <p className="text-xs text-stone-500">
-              Customize trigger days before contract expiry for Level 1, 2, and 3 stakeholders.
-            </p>
+          <div className="flex items-center justify-between border-b border-stone-100 pb-3">
+            <div>
+              <h3 className="font-serif text-xl font-bold text-stone-900">
+                Escalation Window Customization
+              </h3>
+              <p className="text-xs text-stone-500">
+                Customize trigger days before contract expiry for Level 1, 2, and 3 stakeholders.
+              </p>
+            </div>
+            {savedSuccess && (
+              <span className="text-xs text-emerald-800 font-semibold flex items-center gap-1.5 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                <span>{savedTabMessage || 'Escalation schedule calibrated!'}</span>
+              </span>
+            )}
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
-            <div className="p-4 rounded-xl bg-stone-50 border border-stone-200 space-y-2">
-              <span className="font-bold text-stone-800">Level 1: Responsible Employee</span>
-              <p className="text-[11px] text-stone-500">Notified at 90, 60, and 30 days before expiry.</p>
-              <div className="font-mono text-xs font-semibold text-emerald-900">Status: Active</div>
+          <form onSubmit={handleSaveEscalation} className="space-y-6">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+              <div className="p-4 rounded-xl bg-stone-50 border border-stone-200 space-y-3">
+                <span className="font-bold text-stone-800">Level 1: Responsible Employee</span>
+                <p className="text-[11px] text-stone-500">Notified early before expiry to initiate review.</p>
+                <div>
+                  <label className="block text-[10px] uppercase font-bold text-stone-500 mb-1">Trigger Days Before Expiry</label>
+                  <input
+                    type="text"
+                    value={escalationRules.l1Days}
+                    onChange={(e) => setEscalationRules({ ...escalationRules, l1Days: e.target.value })}
+                    className="w-full px-2.5 py-1.5 rounded-md border border-stone-300 font-mono text-xs bg-white"
+                    placeholder="90, 60, 30"
+                  />
+                </div>
+                <div className="font-mono text-[11px] font-semibold text-emerald-900">Status: Active</div>
+              </div>
+
+              <div className="p-4 rounded-xl bg-amber-50/60 border border-amber-200 space-y-3">
+                <span className="font-bold text-amber-900">Level 2: Department Manager</span>
+                <p className="text-[11px] text-amber-800">Notified if no initial renewal action recorded.</p>
+                <div>
+                  <label className="block text-[10px] uppercase font-bold text-amber-800 mb-1">Trigger Days Before Expiry</label>
+                  <input
+                    type="text"
+                    value={escalationRules.l2Days}
+                    onChange={(e) => setEscalationRules({ ...escalationRules, l2Days: e.target.value })}
+                    className="w-full px-2.5 py-1.5 rounded-md border border-amber-300 font-mono text-xs bg-white"
+                    placeholder="15"
+                  />
+                </div>
+                <div className="font-mono text-[11px] font-semibold text-amber-900">Status: Active</div>
+              </div>
+
+              <div className="p-4 rounded-xl bg-rose-50/60 border border-rose-200 space-y-3">
+                <span className="font-bold text-rose-900">Level 3: Executive Admin</span>
+                <p className="text-[11px] text-rose-800">Critical breach warning before auto-rollover.</p>
+                <div>
+                  <label className="block text-[10px] uppercase font-bold text-rose-800 mb-1">Trigger Days Before Expiry</label>
+                  <input
+                    type="text"
+                    value={escalationRules.l3Days}
+                    onChange={(e) => setEscalationRules({ ...escalationRules, l3Days: e.target.value })}
+                    className="w-full px-2.5 py-1.5 rounded-md border border-rose-300 font-mono text-xs bg-white"
+                    placeholder="7, 1"
+                  />
+                </div>
+                <div className="font-mono text-[11px] font-semibold text-rose-900">Status: Active</div>
+              </div>
             </div>
 
-            <div className="p-4 rounded-xl bg-amber-50/60 border border-amber-200 space-y-2">
-              <span className="font-bold text-amber-900">Level 2: Department Manager</span>
-              <p className="text-[11px] text-amber-800">Notified at 15 days before expiry if unhandled.</p>
-              <div className="font-mono text-xs font-semibold text-amber-900">Status: Active</div>
+            <div>
+              <button
+                type="submit"
+                className="px-5 py-2.5 bg-[#243029] hover:bg-[#1A231E] text-white font-semibold uppercase tracking-wider text-xs rounded-lg transition-colors cursor-pointer"
+              >
+                Save Escalation Windows
+              </button>
             </div>
-
-            <div className="p-4 rounded-xl bg-rose-50/60 border border-rose-200 space-y-2">
-              <span className="font-bold text-rose-900">Level 3: Executive Admin</span>
-              <p className="text-[11px] text-rose-800">Triggered at 7 and 1 day before expiry.</p>
-              <div className="font-mono text-xs font-semibold text-rose-900">Status: Active</div>
-            </div>
-          </div>
+          </form>
         </div>
       )}
 

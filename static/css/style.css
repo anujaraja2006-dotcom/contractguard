@@ -1,0 +1,89 @@
+:root {
+  --mars-navy: #0B1528;
+  --mars-navy-light: #16243D;
+  --mars-border: #1E293B;
+  --mars-rust: #C84B31;
+  --mars-rust-hover: #b03e26;
+  --text-main: #0F172A;
+  --text-muted: #64748B;
+  --bg-page: #F8FAFC;
+  --card-bg: #FFFFFF;
+  --border-light: #E2E8F0;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background-color: var(--bg-page);
+  color: var(--text-main);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
+.app-container {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* Base Top Navigation */
+.navbar {
+  height: 56px;
+  background-color: #FFFFFF;
+  border-bottom: 1px solid var(--border-light);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.navbar-brand {
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--mars-navy);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.navbar-links {
+  display: flex;
+  gap: 16px;
+}
+
+.navbar-links a {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  transition: all 0.15s;
+}
+
+.navbar-links a:hover,
+.navbar-links a.active {
+  color: var(--mars-navy);
+  background-color: #F1F5F9;
+}

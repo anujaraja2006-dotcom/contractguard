@@ -11,6 +11,8 @@ export const PAGE_SEQUENCE = [
   'workflow',
   'calendar',
   'about',
+  'settings',
+  'thankyou',
 ] as const;
 
 export type PageId = (typeof PAGE_SEQUENCE)[number] | string;

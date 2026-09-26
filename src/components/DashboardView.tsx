@@ -263,6 +263,74 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
       </div>
 
+      {/* Dedicated Upcoming Renewals Calendar Preview */}
+      <div className="bg-white p-6 rounded-2xl border border-stone-200/90 shadow-xs space-y-4">
+        <div className="flex items-center justify-between border-b border-stone-100 pb-3">
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#C84B31]" />
+            <h3 className="font-serif text-xl font-bold text-stone-900">
+              Upcoming Renewals
+            </h3>
+          </div>
+          <button
+            onClick={onNavigateToCalendar}
+            className="text-xs sm:text-sm font-bold text-[#C84B31] hover:text-[#9A3412] flex items-center gap-1 cursor-pointer"
+          >
+            <span>View Full Calendar →</span>
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div
+            onClick={onNavigateToCalendar}
+            className="p-4 rounded-xl border border-orange-200 bg-orange-50/50 hover:bg-orange-50 transition-colors cursor-pointer space-y-2"
+          >
+            <div className="text-xs font-mono font-bold text-orange-900">25 Sep</div>
+            <div className="flex items-center gap-2">
+              <span className="w-3 h-3 rounded-full bg-[#F97316] shrink-0" />
+              <span className="font-bold text-sm text-stone-900 truncate">
+                ABC Vendor Contract
+              </span>
+            </div>
+            <div className="text-[11px] text-stone-500">
+              Expiry: 25 Oct 2026 • 30-day reminder sent
+            </div>
+          </div>
+
+          <div
+            onClick={onNavigateToCalendar}
+            className="p-4 rounded-xl border border-amber-200 bg-amber-50/50 hover:bg-amber-50 transition-colors cursor-pointer space-y-2"
+          >
+            <div className="text-xs font-mono font-bold text-amber-900">27 Sep</div>
+            <div className="flex items-center gap-2">
+              <span className="w-3 h-3 rounded-full bg-[#FBBF24] shrink-0" />
+              <span className="font-bold text-sm text-stone-900 truncate">
+                XYZ Software Licence
+              </span>
+            </div>
+            <div className="text-[11px] text-stone-500">
+              Notice cutoff deadline • 30-day requirement
+            </div>
+          </div>
+
+          <div
+            onClick={onNavigateToCalendar}
+            className="p-4 rounded-xl border border-red-200 bg-red-50/50 hover:bg-red-50 transition-colors cursor-pointer space-y-2"
+          >
+            <div className="text-xs font-mono font-bold text-red-900">30 Sep</div>
+            <div className="flex items-center gap-2">
+              <span className="w-3 h-3 rounded-full bg-[#DC2626] shrink-0" />
+              <span className="font-bold text-sm text-stone-900 truncate">
+                DEF Service Contract
+              </span>
+            </div>
+            <div className="text-[11px] text-red-700 font-semibold">
+              Critical Expiry • Escalation Required
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* 4. Renewal Overview Chart Section (Visual & Clean) */}
       <div className="bg-white p-7 rounded-2xl border border-stone-200/90 shadow-xs">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">

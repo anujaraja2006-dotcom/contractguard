@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard - Contract Renewal Reminder System</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <span style="color: var(--mars-rust);">🛡️</span> Contract Renewal Reminder System
+    </div>
+    <div class="navbar-links">
+      <a href="/dashboard" class="active">Dashboard</a>
+      <a href="/contracts">Contracts</a>
+      <a href="/calendar">MARS Calendar</a>
+    </div>
+  </nav>
+
+  <div style="padding: 28px 32px; max-width: 1200px; margin: 0 auto;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+      <div>
+        <h1 style="font-size: 22px; font-weight: 700;">Executive Dashboard</h1>
+        <p style="color: var(--text-muted); font-size: 13px;">Enterprise contract portfolio and renewal health metrics</p>
+      </div>
+      <a href="/calendar" style="background-color: var(--mars-rust); color: white; padding: 9px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; text-decoration: none;">Open MARS Calendar 📅</a>
+    </div>
+
+    <!-- Metrics Cards -->
+    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 28px;">
+      <div style="background: white; border: 1px solid var(--border-light); border-radius: 10px; padding: 18px;">
+        <span style="font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Upcoming Renewals</span>
+        <div style="font-size: 28px; font-weight: 700; color: #0F172A; margin-top: 6px;">{{ upcoming_renewals }}</div>
+      </div>
+      <div style="background: white; border: 1px solid var(--border-light); border-radius: 10px; padding: 18px;">
+        <span style="font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Expiring Soon</span>
+        <div style="font-size: 28px; font-weight: 700; color: #D97706; margin-top: 6px;">{{ expiring_soon }}</div>
+      </div>
+      <div style="background: white; border: 1px solid var(--border-light); border-radius: 10px; padding: 18px;">
+        <span style="font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Expired</span>
+        <div style="font-size: 28px; font-weight: 700; color: #DC2626; margin-top: 6px;">{{ expired }}</div>
+      </div>
+      <div style="background: white; border: 1px solid var(--border-light); border-radius: 10px; padding: 18px;">
+        <span style="font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Escalations</span>
+        <div style="font-size: 28px; font-weight: 700; color: #DC2626; margin-top: 6px;">{{ escalations }}</div>
+      </div>
+    </div>
+
+    <!-- Active Contracts Table -->
+    <div style="background: white; border: 1px solid var(--border-light); border-radius: 10px; padding: 20px;">
+      <h2 style="font-size: 16px; font-weight: 700; margin-bottom: 14px;">Recent Agreements</h2>
+      <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 13px;">
+        <thead>
+          <tr style="border-bottom: 2px solid #F1F5F9; color: var(--text-muted);">
+            <th style="padding: 10px;">Contract</th>
+            <th style="padding: 10px;">Category</th>
+            <th style="padding: 10px;">Party</th>
+            <th style="padding: 10px;">Expiry Date</th>
+            <th style="padding: 10px;">Status</th>
+            <th style="padding: 10px;">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in contracts %}
+          <tr style="border-bottom: 1px solid #F1F5F9;">
+            <td style="padding: 12px 10px; font-weight: 600;">{{ c.name }}</td>
+            <td style="padding: 12px 10px;">{{ c.category }}</td>
+            <td style="padding: 12px 10px;">{{ c.party_name }}</td>
+            <td style="padding: 12px 10px;">{{ c.expiry_date }}</td>
+            <td style="padding: 12px 10px;">
+              <span style="padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; background-color: #FEF3C7; color: #92400E;">{{ c.status }}</span>
+            </td>
+            <td style="padding: 12px 10px;">
+              <a href="/contracts/{{ c.id }}" style="color: var(--mars-rust); font-weight: 600;">Details →</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</body>
+</html>
