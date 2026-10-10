@@ -16,7 +16,7 @@ import {
 import { UserProfile } from '../types';
 
 interface AuthViewProps {
-  onLoginSuccess: (user: UserProfile) => void;
+  onLoginSuccess: (user: UserProfile, isNewAccount?: boolean) => void;
   onNavigateHome: () => void;
   initialMode?: 'login' | 'signup';
 }
@@ -134,7 +134,7 @@ export const AuthView: React.FC<AuthViewProps> = ({
       }
 
       setIsSubmitting(false);
-      onLoginSuccess(authenticatedUser);
+      onLoginSuccess(authenticatedUser, false);
     }, 600);
   };
 
@@ -198,7 +198,7 @@ export const AuthView: React.FC<AuthViewProps> = ({
       }
 
       setIsSubmitting(false);
-      onLoginSuccess(newUser);
+      onLoginSuccess(newUser, true);
     }, 700);
   };
 

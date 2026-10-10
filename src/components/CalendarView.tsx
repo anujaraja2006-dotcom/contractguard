@@ -3,7 +3,6 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronDown,
-  Menu,
   Calendar as CalendarIcon,
   Clock,
   AlertTriangle,
@@ -57,7 +56,6 @@ interface CalendarViewProps {
   onSelectCategoryFilter?: (cat: string) => void;
   activeWorkspaceFilter?: string;
   onSelectWorkspaceFilter?: (ws: string) => void;
-  onToggleSidebar?: () => void;
 }
 
 export const CalendarView: React.FC<CalendarViewProps> = ({
@@ -73,7 +71,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   onSelectCategoryFilter,
   activeWorkspaceFilter = 'all',
   onSelectWorkspaceFilter,
-  onToggleSidebar,
 }) => {
   // Navigation & View State - Default view is WEEK as requested
   const [viewType, setViewType] = useState<'Month' | 'Week' | 'Day' | 'Year'>('Week');
@@ -224,6 +221,10 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   const [isFastApiModalOpen, setIsFastApiModalOpen] = useState<boolean>(false);
   const [fastApiActiveTab, setFastApiActiveTab] = useState<'main' | 'calendar_router' | 'calendar_html' | 'calendar_css' | 'architecture'>('architecture');
   const [customEvents, setCustomEvents] = useState<CalendarActivityEvent[]>(initialEvents);
+
+  React.useEffect(() => {
+    setCustomEvents(initialEvents);
+  }, [initialEvents]);
 
   // New Event Form State
   const [newEventTitle, setNewEventTitle] = useState('');
@@ -605,16 +606,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
       <div className="bg-white p-3.5 rounded-xl border border-[#EDE8E1] shadow-2xs flex flex-wrap items-center justify-between gap-3">
         {/* Left Side: Today, < Previous, > Next + LIVE TIME WIDGET */}
         <div className="flex items-center flex-wrap gap-2.5">
-          {onToggleSidebar && (
-            <button
-              onClick={onToggleSidebar}
-              aria-label="Open MARS Calendar sidebar"
-              className="lg:hidden px-2.5 py-1.5 text-xs font-bold text-slate-800 bg-[#FAF8F5] border border-[#D5CEC5] hover:bg-stone-100 rounded-lg transition-colors cursor-pointer flex items-center gap-1.5"
-            >
-              <Menu className="w-4 h-4 text-[#C84B31]" />
-              <span className="font-sans">MARS</span>
-            </button>
-          )}
           <button
             onClick={handleGoToToday}
             className="px-3.5 py-1.5 text-xs font-bold text-[#0B1528] bg-[#FAF8F5] border border-[#D5CEC5] hover:bg-stone-100 rounded-lg transition-colors cursor-pointer"

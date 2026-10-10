@@ -26,6 +26,7 @@ interface SettingsViewProps {
   onCompanyChange: (company: Company) => void;
   t: TranslationDictionary;
   onExportFullBackup: () => void;
+  onOpenProfile?: () => void;
 }
 
 export const SettingsView: React.FC<SettingsViewProps> = ({
@@ -38,6 +39,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   onCompanyChange,
   t,
   onExportFullBackup,
+  onOpenProfile,
 }) => {
   const [activeTab, setActiveTab] = useState<
     'organization' | 'language' | 'notifications' | 'escalation' | 'users'
@@ -513,10 +515,25 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
       {activeTab === 'users' && (
         <div className="bg-white rounded-2xl border border-stone-200 shadow-xs overflow-hidden">
-          <div className="p-6 border-b border-stone-100 flex items-center justify-between">
-            <h3 className="font-serif text-xl font-bold text-stone-900">
-              Team Members &amp; Role-Based Access Control
-            </h3>
+          <div className="p-6 border-b border-stone-100 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h3 className="font-serif text-xl font-bold text-stone-900">
+                Team Members &amp; Role-Based Access Control
+              </h3>
+              <p className="text-xs text-stone-500 mt-0.5">
+                Manage organization user accounts, roles, access permissions, and identity.
+              </p>
+            </div>
+            {onOpenProfile && (
+              <button
+                type="button"
+                onClick={onOpenProfile}
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#243029] hover:bg-[#1A231E] text-white text-xs font-semibold transition-all shadow-xs cursor-pointer"
+                title="View and edit your personal profile and account credentials"
+              >
+                <span>View &amp; Edit My Profile</span>
+              </button>
+            )}
           </div>
 
           <div className="overflow-x-auto">

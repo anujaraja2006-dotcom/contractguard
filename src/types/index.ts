@@ -44,6 +44,10 @@ export interface UserProfile {
   dateFormat: 'DD/MM/YYYY' | 'MM/DD/YYYY' | 'YYYY-MM-DD';
   currency: 'INR' | 'USD' | 'EUR' | 'GBP';
   avatarUrl?: string;
+  phone?: string;
+  title?: string;
+  bio?: string;
+  createdAt?: string;
 }
 
 export type User = UserProfile;

@@ -9,52 +9,8 @@
 </head>
 <body class="calendar-body">
 
-  <!-- 1. CALENDAR-ONLY SIDEBAR (Appears strictly on Calendar) -->
-  <aside class="mars-sidebar">
-    <div class="calendar-sidebar-header mars-sidebar-header">
-      <div class="mars-brand-title">MARS Calendar</div>
-    </div>
-
-    <div class="mars-sidebar-content">
-      <!-- MY WORKSPACE Section -->
-      <div>
-        <div class="sidebar-section-title">MY WORKSPACE</div>
-        <ul class="sidebar-nav-list">
-          <li class="sidebar-nav-item {% if active_workspace == 'upcoming' %}active{% endif %}" data-workspace="upcoming">
-            <span>Upcoming Renewals</span>
-            <span class="badge">12</span>
-          </li>
-          <li class="sidebar-nav-item {% if active_workspace == 'expiring' %}active{% endif %}" data-workspace="expiring">
-            <span>Expiring Soon</span>
-            <span class="badge">7</span>
-          </li>
-          <li class="sidebar-nav-item {% if active_workspace == 'expired' %}active{% endif %}" data-workspace="expired">
-            <span>Expired</span>
-            <span class="badge">3</span>
-          </li>
-          <li class="sidebar-nav-item {% if active_workspace == 'escalations' %}active{% endif %}" data-workspace="escalations">
-            <span>Escalations</span>
-            <span class="badge">2</span>
-          </li>
-        </ul>
-      </div>
-
-      <!-- CONTRACT CATEGORIES Section -->
-      <div>
-        <div class="sidebar-section-title">CONTRACT CATEGORIES</div>
-        <ul class="sidebar-nav-list">
-          {% for cat in categories %}
-          <li class="sidebar-category-item {% if active_category == cat %}active{% endif %}" data-category="{{ cat }}">
-            <span>{{ cat }}</span>
-          </li>
-          {% endfor %}
-        </ul>
-      </div>
-    </div>
-  </aside>
-
-  <!-- 2. MAIN CALENDAR WORKSPACE -->
-  <main class="calendar-main">
+  <!-- MAIN CALENDAR WORKSPACE -->
+  <main class="calendar-main" style="flex: 1; width: 100%;">
     <!-- Top Calendar Toolbar -->
     <header class="calendar-topbar">
       <!-- Left side: Today, < Previous, > Next + LIVE TIME BADGE -->

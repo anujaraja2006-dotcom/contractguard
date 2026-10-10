@@ -12,7 +12,6 @@ import {
   Lock,
   Globe2,
   Check,
-  Presentation,
 } from 'lucide-react';
 import { TranslationDictionary } from '../i18n/translations';
 import { IndianLanguage, SUPPORTED_LANGUAGES } from '../i18n/languages';
@@ -79,25 +78,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             <span>{t.categoryTag || 'CONTRACT MANAGEMENT | SMART REMINDERS | WORKFLOW'}</span>
           </div>
 
-          {/* Interactive Language Choice Bar on First Page */}
-          <div className="flex items-center gap-2.5 mb-7 px-4 py-2 rounded-full bg-black/50 backdrop-blur-md border border-white/20 text-sm sm:text-base text-stone-200 shadow-md">
-            <Globe2 className="w-4 h-4 text-emerald-400 shrink-0" />
-            <span>
-              Interface:{' '}
-              <strong className="text-white font-semibold">
-                {currentLanguage.englishName}{' '}
-                {currentLanguage.code === 'en' ? '(Default English)' : `(${currentLanguage.nativeName})`}
-              </strong>
-            </span>
-            <span className="text-stone-500">•</span>
-            <button
-              onClick={onOpenLanguageModal}
-              className="text-emerald-300 hover:text-emerald-100 font-semibold underline flex items-center gap-1 cursor-pointer transition-colors"
-            >
-              Choose Language (23 Available) ▾
-            </button>
-          </div>
-
           {/* Prominent Serif Headline */}
           <h1 className="font-serif text-5xl sm:text-7xl lg:text-8xl font-bold tracking-tight text-[#F7F5F0] max-w-4xl leading-[1.1] mb-7">
             {t.heroHeadline || 'Never Miss a Contract Renewal.'}
@@ -124,15 +104,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             >
               Explore Features
             </button>
-            {onNavigateTab && (
-              <button
-                onClick={() => onNavigateTab('thankyou')}
-                className="px-6 py-4 rounded-full text-emerald-300 hover:text-white border border-emerald-500/40 hover:border-emerald-400 bg-emerald-950/40 text-sm sm:text-base font-semibold tracking-wide transition-colors cursor-pointer flex items-center gap-2"
-              >
-                <Presentation className="w-4.5 h-4.5" />
-                <span>Final Presentation Slide</span>
-              </button>
-            )}
           </div>
 
           {/* Trust badges below hero */}

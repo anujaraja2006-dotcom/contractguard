@@ -16,8 +16,8 @@ import { ThankYouView } from './components/ThankYouView';
 import { AuthView } from './components/AuthView';
 import { AIAssistantDrawer } from './components/AIAssistantDrawer';
 import { FirstLoginLanguageModal } from './components/FirstLoginLanguageModal';
-import { Sidebar } from './components/Sidebar';
 import { EscalationsView } from './components/EscalationsView';
+import { UserProfileModal } from './components/UserProfileModal';
 
 import {
   mockContracts,
@@ -54,11 +54,21 @@ import { getTranslations } from './i18n/translations';
 import { calculateDaysRemaining, classifyRisk } from './utils/contractUtils';
 import { CheckCircle2, AlertTriangle, X, Bell } from 'lucide-react';
 import { PageSequenceNavigator } from './components/PageSequenceNavigator';
+import {
+  localizeContracts,
+  localizeContract,
+  localizeReminders,
+  localizeDocuments,
+  localizeNotifications,
+  localizeCalendarEvents,
+  localizeUser,
+  localizeCompany,
+  localizeDepartment,
+} from './utils/dataLocalizer';
 
 export function App() {
   // Navigation & View State: The Calendar item is highlighted as user is in Calendar module
   const [currentTab, setCurrentTab] = useState<string>('calendar');
-  const [isSidebarOpenMobile, setIsSidebarOpenMobile] = useState<boolean>(false);
   const [calendarCategoryFilter, setCalendarCategoryFilter] = useState<string>('all');
   const [calendarWorkspaceFilter, setCalendarWorkspaceFilter] = useState<string>('all');
   const [historyStack, setHistoryStack] = useState<string[]>([]);
@@ -93,9 +103,12 @@ export function App() {
   // Authentication State
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
     try {
-      return !!localStorage.getItem('contractly_session_token');
+      if (localStorage.getItem('contractly_logged_out') === 'true') {
+        return false;
+      }
+      return true;
     } catch {
-      return false;
+      return true;
     }
   });
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
@@ -143,6 +156,8 @@ export function App() {
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [contractToEdit, setContractToEdit] = useState<Contract | null>(null);
   const [isAIAssistantOpen, setIsAIAssistantOpen] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [isNewlyCreatedProfile, setIsNewlyCreatedProfile] = useState(false);
 
   // Toast Notification State
   const [toast, setToast] = useState<{
@@ -157,6 +172,44 @@ export function App() {
 
   // Translations
   const t = getTranslations(currentLanguage.code);
+
+  // Dynamically Localized Datasets that adapt immediately to the chosen language
+  const localizedContracts = React.useMemo(
+    () => localizeContracts(contracts, currentLanguage.code),
+    [contracts, currentLanguage.code]
+  );
+  const localizedReminders = React.useMemo(
+    () => localizeReminders(reminders, currentLanguage.code),
+    [reminders, currentLanguage.code]
+  );
+  const localizedDocuments = React.useMemo(
+    () => localizeDocuments(documents, currentLanguage.code),
+    [documents, currentLanguage.code]
+  );
+  const localizedNotifications = React.useMemo(
+    () => localizeNotifications(notifications, currentLanguage.code),
+    [notifications, currentLanguage.code]
+  );
+  const localizedCalendarEvents = React.useMemo(
+    () => localizeCalendarEvents(mockCalendarEvents, currentLanguage.code),
+    [currentLanguage.code]
+  );
+  const localizedCurrentUser = React.useMemo(
+    () => localizeUser(currentUser, currentLanguage.code),
+    [currentUser, currentLanguage.code]
+  );
+  const localizedCurrentCompany = React.useMemo(
+    () => localizeCompany(currentCompany, currentLanguage.code),
+    [currentCompany, currentLanguage.code]
+  );
+  const localizedCompanies = React.useMemo(
+    () => mockCompanies.map((c) => localizeCompany(c, currentLanguage.code)),
+    [currentLanguage.code]
+  );
+  const localizedDepartments = React.useMemo(
+    () => mockDepartments.map((d) => localizeDepartment(d, currentLanguage.code)),
+    [currentLanguage.code]
+  );
 
   // Language selection handler
   const handleSelectLanguage = (code: LanguageCode) => {
@@ -535,22 +588,59 @@ export function App() {
   };
 
   // Auth Handlers
-  const handleLoginSuccess = (user: User) => {
+  const handleLoginSuccess = (user: User, isNewAccount: boolean = false) => {
+    try {
+      localStorage.removeItem('contractly_logged_out');
+      localStorage.setItem('contractly_session_token', 'session_' + Date.now());
+      localStorage.setItem('contractly_session_user', JSON.stringify(user));
+    } catch {
+      // ignore
+    }
     setCurrentUser(user);
     setIsAuthenticated(true);
-    showToast(`Welcome back, ${user.name}! Redirecting to Dashboard...`, 'success');
-    setCurrentTab('dashboard');
+    if (isNewAccount) {
+      setIsNewlyCreatedProfile(true);
+      setIsProfileModalOpen(true);
+      showToast(`Account created successfully! You can customize and edit your profile below.`, 'success');
+      setCurrentTab('dashboard');
+    } else {
+      showToast(`Welcome back, ${user.name}! Redirecting to Dashboard...`, 'success');
+      setCurrentTab('dashboard');
+    }
+  };
+
+  const handleUpdateUserProfile = (updatedUser: User) => {
+    setCurrentUser(updatedUser);
+    try {
+      localStorage.setItem('contractly_session_user', JSON.stringify(updatedUser));
+      const stored = localStorage.getItem('contractly_registered_users');
+      let registeredUsers: User[] = stored ? JSON.parse(stored) : [];
+      const idx = registeredUsers.findIndex(
+        (u) => u.id === updatedUser.id || u.email.toLowerCase() === updatedUser.email.toLowerCase()
+      );
+      if (idx >= 0) {
+        registeredUsers[idx] = updatedUser;
+      } else {
+        registeredUsers.push(updatedUser);
+      }
+      localStorage.setItem('contractly_registered_users', JSON.stringify(registeredUsers));
+    } catch {
+      // ignore
+    }
+    showToast(`Profile updated successfully for ${updatedUser.name}!`, 'success');
   };
 
   const handleLogout = () => {
     try {
       localStorage.removeItem('contractly_session_token');
       localStorage.removeItem('contractly_session_user');
+      localStorage.setItem('contractly_logged_out', 'true');
     } catch {
       // ignore
     }
     setIsAuthenticated(false);
-    showToast('Signed out successfully.', 'info');
+    setIsProfileModalOpen(false);
+    showToast('Logged out successfully.', 'info');
     setCurrentTab('home');
   };
 
@@ -578,57 +668,31 @@ export function App() {
         </div>
       )}
 
-      {/* Main Top Navigation - Completely removed when viewing MARS Calendar as requested */}
-      {currentTab !== 'calendar' && (
-        <Navbar
-          currentTab={currentTab}
-          setCurrentTab={(tabId) => handleNavigate(tabId, 'forward')}
-          language={currentLanguage.code}
-          setLanguage={handleSelectLanguage}
-          t={t}
-          userRole={currentUser.role}
-          setUserRole={(role: UserRole) => {
-            setCurrentUser((prev) => ({ ...prev, role }));
-          }}
-          notifications={notifications}
-          onMarkNotificationRead={handleMarkNotificationRead}
-          onClearNotifications={handleClearNotifications}
-          onOpenAddContract={handleOpenAddContract}
-          onOpenAiAssistant={() => setIsAIAssistantOpen(true)}
-          onOpenLanguageModal={() => setIsFirstLoginLanguageOpen(true)}
-          currentUser={currentUser}
-          isAuthenticated={isAuthenticated}
-          onLogout={handleLogout}
-          onOpenAuth={handleOpenAuth}
-          onToggleSidebar={() => setIsSidebarOpenMobile((prev) => !prev)}
-        />
-      )}
-
-      {/* Left Navigation Sidebar - ONLY shown in Calendar module as requested */}
-      {currentTab === 'calendar' && (
-        <Sidebar
-          currentTab={currentTab}
-          onNavigate={(tabId) => handleNavigate(tabId, 'forward')}
-          isOpenMobile={isSidebarOpenMobile}
-          onCloseMobile={() => setIsSidebarOpenMobile(false)}
-          currentUser={currentUser}
-          contracts={contracts}
-          reminders={reminders}
-          t={t}
-          activeWorkspaceFilter={calendarWorkspaceFilter}
-          onSelectWorkspaceFilter={(ws) => {
-            setCalendarWorkspaceFilter(ws);
-          }}
-          activeCategoryFilter={calendarCategoryFilter}
-          onSelectCategoryFilter={(cat) => {
-            setCalendarCategoryFilter(cat);
-          }}
-          userRole={currentUser.role}
-          setUserRole={(role: UserRole) => {
-            setCurrentUser((prev) => ({ ...prev, role }));
-          }}
-        />
-      )}
+      {/* Main Top Navigation */}
+      <Navbar
+        currentTab={currentTab}
+        setCurrentTab={(tabId) => handleNavigate(tabId, 'forward')}
+        language={currentLanguage.code}
+        setLanguage={handleSelectLanguage}
+        t={t}
+        userRole={currentUser.role}
+        setUserRole={(role: UserRole) => {
+          setCurrentUser((prev) => ({ ...prev, role }));
+        }}
+        notifications={localizedNotifications}
+        onMarkNotificationRead={handleMarkNotificationRead}
+        onClearNotifications={handleClearNotifications}
+        onOpenAddContract={handleOpenAddContract}
+        onOpenAiAssistant={() => setIsAIAssistantOpen(true)}
+        onOpenLanguageModal={() => setIsFirstLoginLanguageOpen(true)}
+        currentUser={localizedCurrentUser}
+        isAuthenticated={isAuthenticated}
+        onOpenAuth={handleOpenAuth}
+        onOpenProfile={() => {
+          setIsNewlyCreatedProfile(false);
+          setIsProfileModalOpen(true);
+        }}
+      />
 
       {/* Viewport-fixed Minimal Arrow-Only Page Navigation Controls */}
       <PageSequenceNavigator
@@ -641,8 +705,6 @@ export function App() {
       {/* Main View Area with Directional Slide & Fade Transition */}
       <main
         className={`flex-1 transition-all duration-400 ease-in-out ${
-          currentTab === 'calendar' ? 'lg:pl-64' : ''
-        } ${
           isTransitioning
             ? transitionDirection === 'forward'
               ? '-translate-x-5 opacity-0'
@@ -678,9 +740,9 @@ export function App() {
 
         {currentTab === 'dashboard' && (
           <DashboardView
-            contracts={contracts}
-            companies={mockCompanies}
-            departments={mockDepartments}
+            contracts={localizedContracts}
+            companies={localizedCompanies}
+            departments={localizedDepartments}
             selectedCompanyId={selectedCompanyId}
             setSelectedCompanyId={(id) => {
               setSelectedCompanyId(id);
@@ -702,7 +764,7 @@ export function App() {
 
         {currentTab === 'contracts' && (
           <ContractsView
-            contracts={contracts}
+            contracts={localizedContracts}
             t={t}
             onSelectContract={(contract) => {
               setSelectedContract(contract);
@@ -717,8 +779,8 @@ export function App() {
 
         {currentTab === 'reminders' && (
           <RemindersView
-            reminders={reminders}
-            contracts={contracts}
+            reminders={localizedReminders}
+            contracts={localizedContracts}
             t={t}
             onCompleteReminder={handleCompleteReminder}
             onSnoozeReminder={handleSnoozeReminder}
@@ -729,8 +791,8 @@ export function App() {
 
         {currentTab === 'calendar' && (
           <CalendarView
-            contracts={contracts}
-            reminders={reminders}
+            contracts={localizedContracts}
+            reminders={localizedReminders}
             t={t}
             onSelectContract={(contract) => {
               setSelectedContract(contract);
@@ -739,19 +801,18 @@ export function App() {
             onEditContract={handleOpenEditContract}
             onRenewContract={handleQuickRenew}
             onTriggerEscalation={handleTriggerEscalation}
-            initialEvents={mockCalendarEvents}
+            initialEvents={localizedCalendarEvents}
             activeCategoryFilter={calendarCategoryFilter}
             onSelectCategoryFilter={setCalendarCategoryFilter}
             activeWorkspaceFilter={calendarWorkspaceFilter}
             onSelectWorkspaceFilter={setCalendarWorkspaceFilter}
-            onToggleSidebar={() => setIsSidebarOpenMobile(true)}
           />
         )}
 
         {currentTab === 'escalations' && (
           <EscalationsView
-            contracts={contracts}
-            reminders={reminders}
+            contracts={localizedContracts}
+            reminders={localizedReminders}
             t={t}
             onSelectContract={(contract) => {
               setSelectedContract(contract);
@@ -764,8 +825,8 @@ export function App() {
 
         {currentTab === 'documents' && (
           <DocumentsView
-            documents={documents}
-            contracts={contracts}
+            documents={localizedDocuments}
+            contracts={localizedContracts}
             t={t}
             onUploadDocument={(newDoc) => {
               setDocuments((prev) => [newDoc, ...prev]);
@@ -776,9 +837,9 @@ export function App() {
 
         {currentTab === 'analytics' && (
           <AnalyticsView
-            contracts={contracts}
-            companies={mockCompanies}
-            departments={mockDepartments}
+            contracts={localizedContracts}
+            companies={localizedCompanies}
+            departments={localizedDepartments}
             t={t}
             onExportReport={handleExportCsv}
           />
@@ -786,7 +847,7 @@ export function App() {
 
         {(currentTab === 'workflow' || currentTab === 'renewals') && (
           <RenewalWorkflowView
-            contracts={contracts}
+            contracts={localizedContracts}
             renewalHistory={renewalHistory}
             t={t}
             onSelectContract={(contract) => {
@@ -817,22 +878,26 @@ export function App() {
 
         {currentTab === 'settings' && (
           <SettingsView
-            currentCompany={currentCompany}
-            companies={mockCompanies}
-            currentUser={currentUser}
+            currentCompany={localizedCurrentCompany}
+            companies={localizedCompanies}
+            currentUser={localizedCurrentUser}
             users={mockUsers}
             currentLanguage={currentLanguage}
             onLanguageChange={(lang) => handleSelectLanguage(lang.code)}
             onCompanyChange={setCurrentCompany}
             t={t}
             onExportFullBackup={handleExportFullBackup}
+            onOpenProfile={() => {
+              setIsNewlyCreatedProfile(false);
+              setIsProfileModalOpen(true);
+            }}
           />
         )}
       </main>
 
       {/* Contract Detail Modal */}
       <ContractDetailModal
-        contract={selectedContract}
+        contract={selectedContract ? localizeContract(selectedContract, currentLanguage.code) : null}
         isOpen={isDetailModalOpen}
         onClose={() => setIsDetailModalOpen(false)}
         t={t}
@@ -842,7 +907,7 @@ export function App() {
         }}
         onAdvanceWorkflow={handleAdvanceWorkflow}
         onQuickRenew={handleQuickRenew}
-        documents={documents}
+        documents={localizedDocuments}
         comments={comments}
         onAddComment={handleAddComment}
         onOpenSetReminder={(_contract) => {
@@ -857,7 +922,7 @@ export function App() {
         onClose={() => setIsFormModalOpen(false)}
         onSave={handleSaveContract}
         contractToEdit={contractToEdit}
-        departments={mockDepartments}
+        departments={localizedDepartments}
         t={t}
       />
 
@@ -865,7 +930,7 @@ export function App() {
       <AIAssistantDrawer
         isOpen={isAIAssistantOpen}
         onClose={() => setIsAIAssistantOpen(false)}
-        contracts={contracts}
+        contracts={localizedContracts}
         currentLanguage={currentLanguage}
       />
 
@@ -878,6 +943,24 @@ export function App() {
           setIsFirstLoginLanguageOpen(false);
         }}
         currentLanguage={currentLanguage.code}
+      />
+
+      {/* User Profile View & Edit Modal */}
+      <UserProfileModal
+        isOpen={isProfileModalOpen}
+        onClose={() => {
+          setIsProfileModalOpen(false);
+          setIsNewlyCreatedProfile(false);
+        }}
+        currentUser={currentUser}
+        onUpdateUser={handleUpdateUserProfile}
+        departments={localizedDepartments}
+        companies={localizedCompanies}
+        currentLanguage={currentLanguage.code}
+        onLanguageChange={(code) => handleSelectLanguage(code)}
+        onLogout={handleLogout}
+        isNewlyCreated={isNewlyCreatedProfile}
+        t={t}
       />
 
       {/* Subtle Footer */}

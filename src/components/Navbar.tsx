@@ -9,11 +9,8 @@ import {
   Clock,
   ChevronDown,
   Sparkles,
-  LogOut,
   User as UserIcon,
   LogIn,
-  ArrowLeft,
-  ArrowRight,
   Info,
   Settings as SettingsIcon,
   Home as HomeIcon,
@@ -39,8 +36,8 @@ interface NavbarProps {
   onOpenLanguageModal: () => void;
   currentUser?: UserProfile | null;
   isAuthenticated?: boolean;
-  onLogout?: () => void;
   onOpenAuth?: (mode?: 'login' | 'signup') => void;
+  onOpenProfile?: () => void;
   onToggleSidebar?: () => void;
 }
 
@@ -60,8 +57,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenLanguageModal,
   currentUser,
   isAuthenticated = true,
-  onLogout,
   onOpenAuth,
+  onOpenProfile,
   onToggleSidebar,
 }) => {
   const [showNotifications, setShowNotifications] = useState(false);
@@ -73,52 +70,6 @@ export const Navbar: React.FC<NavbarProps> = ({
     SUPPORTED_LANGUAGES.find((l) => l.code === language) || SUPPORTED_LANGUAGES[0];
 
   const roles: UserRole[] = ['Admin', 'Manager', 'Employee', 'Analyst', 'Viewer'];
-
-  // Page sequence for before and after arrow navigation
-  const PAGE_SEQUENCE = [
-    'home',
-    'dashboard',
-    'contracts',
-    'reminders',
-    'calendar',
-    'documents',
-    'analytics',
-    'workflow',
-    'about',
-    'settings',
-    'thankyou',
-  ] as const;
-
-  const normalizedTab = currentTab === 'landing' ? 'home' : currentTab;
-  const currentIndex = PAGE_SEQUENCE.indexOf(normalizedTab as any);
-  const safeIndex = currentIndex >= 0 ? currentIndex : 0;
-
-  const handlePrevPage = () => {
-    const prevIndex = (safeIndex - 1 + PAGE_SEQUENCE.length) % PAGE_SEQUENCE.length;
-    setCurrentTab(PAGE_SEQUENCE[prevIndex]);
-  };
-
-  const handleNextPage = () => {
-    const nextIndex = (safeIndex + 1) % PAGE_SEQUENCE.length;
-    setCurrentTab(PAGE_SEQUENCE[nextIndex]);
-  };
-
-  // Keyboard navigation support with ArrowLeft and ArrowRight keys
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const targetTag = (e.target as HTMLElement)?.tagName;
-      if (targetTag === 'INPUT' || targetTag === 'TEXTAREA' || targetTag === 'SELECT') {
-        return;
-      }
-      if (e.key === 'ArrowLeft') {
-        handlePrevPage();
-      } else if (e.key === 'ArrowRight') {
-        handleNextPage();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [safeIndex]);
 
   return (
     <header className="sticky top-0 z-40 bg-[#FAF8F5]/90 backdrop-blur-md border-b border-[#E8E4DF] transition-all">
@@ -205,46 +156,23 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </span>
               </div>
             </button>
-
-            {/* Minimal Previous/Next Navigation Controls Using Only Arrow Symbols */}
-            <div className="flex items-center space-x-2 sm:space-x-2.5">
-              {/* Left Arrow Button "←" (Before Page) */}
-              <button
-                type="button"
-                onClick={handlePrevPage}
-                aria-label="Previous"
-                className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-white/80 hover:bg-[#243029] text-stone-700 hover:text-white border border-stone-300/80 shadow-xs hover:shadow-md backdrop-blur-sm flex items-center justify-center transition-all duration-200 ease-out hover:scale-105 active:scale-95 cursor-pointer group focus:outline-none focus:ring-2 focus:ring-emerald-700/40"
-              >
-                <ArrowLeft className="w-5 h-5 text-current transition-transform duration-200 group-hover:-translate-x-0.5" />
-              </button>
-
-              {/* Right Arrow Button "→" (After Page) */}
-              <button
-                type="button"
-                onClick={handleNextPage}
-                aria-label="Next"
-                className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-white/80 hover:bg-[#243029] text-stone-700 hover:text-white border border-stone-300/80 shadow-xs hover:shadow-md backdrop-blur-sm flex items-center justify-center transition-all duration-200 ease-out hover:scale-105 active:scale-95 cursor-pointer group focus:outline-none focus:ring-2 focus:ring-emerald-700/40"
-              >
-                <ArrowRight className="w-5 h-5 text-current transition-transform duration-200 group-hover:translate-x-0.5" />
-              </button>
-            </div>
           </div>
 
           {/* Right Action Controls */}
           <div className="flex items-center space-x-2 sm:space-x-3">
-            {/* Home Page Navigation Button near Languages Choosing */}
+            {/* Home Page Navigation Icon Button */}
             <button
               id="navbar-home-page-btn"
               onClick={() => setCurrentTab('home')}
-              className={`flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-all cursor-pointer ${
-                currentTab === 'home' || currentTab === 'landing'
-                  ? 'bg-emerald-100 text-emerald-900 border border-emerald-300 font-bold shadow-2xs'
-                  : 'text-stone-700 hover:text-stone-900 hover:bg-stone-100 border border-stone-200/90'
-              }`}
+              aria-label="Home Page"
               title="Home Page"
+              className={`p-2 rounded-lg transition-all cursor-pointer flex items-center justify-center border ${
+                currentTab === 'home' || currentTab === 'landing'
+                  ? 'bg-emerald-100 text-emerald-900 border-emerald-300 shadow-2xs'
+                  : 'text-stone-700 hover:text-stone-900 hover:bg-stone-100 border-stone-200/90'
+              }`}
             >
-              <HomeIcon className="w-4 h-4 text-stone-600" />
-              <span>Home Page</span>
+              <HomeIcon className="w-4.5 h-4.5 text-stone-700" />
             </button>
 
             {/* Language Selector Dropdown (Languages Choosing) */}
@@ -311,34 +239,34 @@ export const Navbar: React.FC<NavbarProps> = ({
               )}
             </div>
 
-            {/* About Us Navigation Button near Notifications */}
+            {/* About Us Navigation Icon Button */}
             <button
               id="navbar-about-us-btn"
               onClick={() => setCurrentTab('about')}
-              className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-all cursor-pointer ${
+              aria-label="About Us"
+              title="About Us"
+              className={`p-2 rounded-lg transition-all cursor-pointer flex items-center justify-center border ${
                 currentTab === 'about'
-                  ? 'bg-emerald-100 text-emerald-900 border border-emerald-300 font-bold shadow-2xs'
-                  : 'text-stone-700 hover:text-stone-900 hover:bg-stone-100'
+                  ? 'bg-emerald-100 text-emerald-900 border-emerald-300 shadow-2xs'
+                  : 'text-stone-700 hover:text-stone-900 hover:bg-stone-100 border-stone-200/90'
               }`}
-              title="About Contractly"
             >
-              <Info className="w-4 h-4 text-stone-600" />
-              <span>About Us</span>
+              <Info className="w-4.5 h-4.5 text-stone-700" />
             </button>
 
-            {/* Settings Navigation Button near Notifications */}
+            {/* Settings Navigation Icon Button */}
             <button
               id="navbar-settings-btn"
               onClick={() => setCurrentTab('settings')}
-              className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-all cursor-pointer ${
+              aria-label="Settings"
+              title="Settings"
+              className={`p-2 rounded-lg transition-all cursor-pointer flex items-center justify-center border ${
                 currentTab === 'settings'
-                  ? 'bg-emerald-100 text-emerald-900 border border-emerald-300 font-bold shadow-2xs'
-                  : 'text-stone-700 hover:text-stone-900 hover:bg-stone-100'
+                  ? 'bg-emerald-100 text-emerald-900 border-emerald-300 shadow-2xs'
+                  : 'text-stone-700 hover:text-stone-900 hover:bg-stone-100 border-stone-200/90'
               }`}
-              title="Application Settings"
             >
-              <SettingsIcon className="w-4 h-4 text-stone-600" />
-              <span>Settings</span>
+              <SettingsIcon className="w-4.5 h-4.5 text-stone-700" />
             </button>
 
             {/* Notifications Bell */}
@@ -491,14 +419,18 @@ export const Navbar: React.FC<NavbarProps> = ({
               )}
             </div>
 
-            {/* User Account / Authentication Status */}
+            {/* User Account Profile Pill (when authenticated) or Login button */}
             {isAuthenticated && currentUser ? (
-              <div className="flex items-center gap-2">
-                <div
-                  className="hidden md:flex items-center gap-2 px-2.5 py-1 rounded-full bg-stone-100 border border-stone-200 text-stone-800 text-xs"
-                  title={`Signed in as ${currentUser.email}`}
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <button
+                  type="button"
+                  id="navbar-profile-btn"
+                  onClick={onOpenProfile}
+                  className="flex items-center gap-2 px-2.5 py-1.5 rounded-full bg-stone-100 hover:bg-stone-200/90 border border-stone-200 text-stone-800 text-xs transition-all cursor-pointer group hover:shadow-xs active:scale-95"
+                  title="View & Edit Profile"
+                  aria-label="User Profile"
                 >
-                  <div className="w-6 h-6 rounded-full bg-[#243029] text-white flex items-center justify-center font-bold text-[10px]">
+                  <div className="w-6 h-6 rounded-full bg-[#243029] group-hover:bg-[#1A231E] text-white flex items-center justify-center font-bold text-[10px] transition-colors shrink-0">
                     {currentUser.name
                       ? currentUser.name
                           .split(' ')
@@ -508,32 +440,22 @@ export const Navbar: React.FC<NavbarProps> = ({
                           .toUpperCase()
                       : 'U'}
                   </div>
-                  <span className="font-medium max-w-[110px] truncate">{currentUser.name}</span>
-                </div>
-
-                {onLogout && (
-                  <button
-                    onClick={onLogout}
-                    className="p-2 rounded-lg border border-stone-200 hover:bg-stone-100 text-stone-600 hover:text-rose-600 transition-colors cursor-pointer"
-                    title="Sign Out"
-                    aria-label="Sign Out"
-                  >
-                    <LogOut className="w-4 h-4" />
-                  </button>
-                )}
+                  <span className="font-semibold max-w-[85px] sm:max-w-[120px] truncate">
+                    {currentUser.name}
+                  </span>
+                </button>
               </div>
             ) : (
-              <div className="flex items-center gap-1.5">
-                {onOpenAuth && (
-                  <button
-                    onClick={() => onOpenAuth('login')}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs sm:text-sm font-semibold rounded-lg text-stone-700 hover:bg-stone-100 border border-stone-200 transition-colors cursor-pointer"
-                  >
-                    <LogIn className="w-3.5 h-3.5" />
-                    <span>Login</span>
-                  </button>
-                )}
-              </div>
+              onOpenAuth && (
+                <button
+                  id="navbar-login-btn"
+                  onClick={() => onOpenAuth('login')}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg text-white bg-[#243029] hover:bg-[#1A231E] transition-colors cursor-pointer shadow-xs"
+                >
+                  <LogIn className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Login</span>
+                </button>
+              )
             )}
 
             {/* Ask AI Assistant Button near Add Contract */}
