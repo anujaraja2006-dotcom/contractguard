@@ -42,6 +42,13 @@ import {
   formatDate,
   calculateDaysRemaining,
 } from '../utils/contractUtils';
+import {
+  CalendarLegend,
+  LegendFilter,
+  CONTRACT_TYPE_LEGEND,
+  RISK_LEVEL_LEGEND,
+  RENEWAL_STATUS_LEGEND,
+} from './CalendarLegend';
 
 interface CalendarViewProps {
   contracts: Contract[];
@@ -209,6 +216,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   const [selectedCategory, setSelectedCategory] = useState<string>(activeCategoryFilter);
   const [selectedOwner, setSelectedOwner] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
+  const [legendFilter, setLegendFilter] = useState<LegendFilter | null>(null);
 
   // Right-Side Detail Panel State
   const [activeEventDetail, setActiveEventDetail] = useState<CalendarActivityEvent | null>(() => {
@@ -398,16 +406,54 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         }
       }
 
+      // Legend Color-Code Filter
+      if (legendFilter) {
+        const related =
+          contracts.find((c) => c.id === ev.contractId) ||
+          contracts.find((c) => c.name === ev.contractName);
+
+        if (legendFilter.category === 'type') {
+          const typeItem = CONTRACT_TYPE_LEGEND.find((t) => t.id === legendFilter.value);
+          if (typeItem) {
+            const matches =
+              typeItem.matchValues.some((v) => ev.category?.toLowerCase().includes(v.toLowerCase())) ||
+              (related && typeItem.matchValues.some((v) => related.type?.toLowerCase().includes(v.toLowerCase())));
+            if (!matches) return false;
+          }
+        } else if (legendFilter.category === 'risk') {
+          const riskItem = RISK_LEVEL_LEGEND.find((r) => r.id === legendFilter.value);
+          if (riskItem) {
+            const matches =
+              riskItem.matchValues.some((v) => ev.priority?.toLowerCase() === v.toLowerCase()) ||
+              (related && riskItem.matchValues.some((v) => related.riskLevel?.toLowerCase() === v.toLowerCase()));
+            if (!matches) return false;
+          }
+        } else if (legendFilter.category === 'status') {
+          const statusItem = RENEWAL_STATUS_LEGEND.find((s) => s.id === legendFilter.value);
+          if (statusItem) {
+            const matches =
+              statusItem.matchValues.some((v) => ev.status?.toLowerCase() === v.toLowerCase()) ||
+              statusItem.matchValues.some((v) => ev.eventType?.toLowerCase() === v.toLowerCase()) ||
+              (related &&
+                (statusItem.matchValues.some((v) => related.status?.toLowerCase() === v.toLowerCase()) ||
+                 statusItem.matchValues.some((v) => related.renewalStatus?.toLowerCase() === v.toLowerCase())));
+            if (!matches) return false;
+          }
+        }
+      }
+
       return true;
     });
   }, [
     allEvents,
+    contracts,
     searchQuery,
     selectedContractFilter,
     selectedCategory,
     selectedOwner,
     selectedStatus,
     activeWorkspaceFilter,
+    legendFilter,
   ]);
 
   // Group events by date YYYY-MM-DD
@@ -949,7 +995,16 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         </div>
       )}
 
-      {/* 3. CALENDAR FILTERS (Compact filters: All Contracts, All Categories, All Owners, All Status) */}
+      {/* 3. COLOR-CODED LEGEND COMPONENT */}
+      <CalendarLegend
+        contracts={contracts}
+        events={allEvents}
+        t={t}
+        activeFilter={legendFilter}
+        onSelectFilter={setLegendFilter}
+      />
+
+      {/* 4. CALENDAR FILTERS (Compact filters: All Contracts, All Categories, All Owners, All Status) */}
       <div className="bg-white p-3 rounded-xl border border-[#EDE8E1] shadow-2xs flex flex-wrap items-center gap-2 text-xs">
         <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 pr-1">
           Filters:
@@ -1017,10 +1072,28 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
           <option value="Expired">Expired</option>
         </select>
 
+        {/* Active Legend Filter Badge */}
+        {legendFilter && (
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#0B1528] text-white font-mono text-[11px] shadow-2xs animate-in fade-in">
+            <span className={`w-2 h-2 rounded-full ${legendFilter.colorClass}`} />
+            <span className="text-slate-300 text-[10px] uppercase font-bold">Legend:</span>
+            <span className="font-bold">{legendFilter.label}</span>
+            <button
+              onClick={() => setLegendFilter(null)}
+              className="ml-1 hover:text-rose-300 cursor-pointer p-0.5 rounded"
+              title="Clear legend filter"
+              aria-label="Clear legend filter"
+            >
+              <X className="w-3 h-3 text-slate-300 hover:text-white" />
+            </button>
+          </div>
+        )}
+
         {(selectedContractFilter !== 'all' ||
           selectedCategory !== 'all' ||
           selectedOwner !== 'all' ||
           selectedStatus !== 'all' ||
+          legendFilter !== null ||
           searchQuery) && (
           <button
             onClick={() => {
@@ -1028,13 +1101,14 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
               setSelectedCategory('all');
               setSelectedOwner('all');
               setSelectedStatus('all');
+              setLegendFilter(null);
               setSearchQuery('');
               if (onSelectCategoryFilter) onSelectCategoryFilter('all');
               if (onSelectWorkspaceFilter) onSelectWorkspaceFilter('all');
             }}
-            className="text-[11px] font-bold text-[#C84B31] hover:underline px-2"
+            className="text-[11px] font-bold text-[#C84B31] hover:underline px-2 cursor-pointer"
           >
-            Clear Filters
+            Clear All Filters
           </button>
         )}
       </div>
@@ -1147,11 +1221,16 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                           const hourVal = parseHourValue(act.time);
                           const topPx = Math.max(0, (hourVal - 8) * 80);
                           const heightPx = Math.max(
-                            64,
+                            68,
                             ((act.durationMinutes || 60) / 60) * 80 - 4
                           );
                           const cardStyle = getCardStyle(act.dotColor);
                           const isSelected = activeEventDetail?.id === act.id;
+                          const relatedContract =
+                            contracts.find((c) => c.id === act.contractId) ||
+                            contracts.find((c) => c.name === act.contractName);
+                          const contractRisk = relatedContract?.riskLevel || act.priority;
+                          const contractCategory = act.category || relatedContract?.type;
 
                           return (
                             <div
@@ -1180,6 +1259,35 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                                 </div>
                                 <div className="text-[10px] font-medium opacity-90 truncate leading-tight">
                                   {act.title}
+                                </div>
+                                <div className="flex items-center gap-1 mt-0.5 flex-wrap">
+                                  {contractCategory && (
+                                    <span className="text-[8px] font-semibold px-1 py-0.2 rounded bg-white/70 border border-black/5 truncate max-w-[65px]">
+                                      {contractCategory.replace(' Agreement', '').replace(' Contract', '')}
+                                    </span>
+                                  )}
+                                  {contractRisk && (
+                                    <span className={`text-[8px] font-extrabold px-1 py-0.2 rounded border flex items-center gap-0.5 ${
+                                      contractRisk === 'Critical'
+                                        ? 'bg-rose-100 text-rose-800 border-rose-300'
+                                        : contractRisk === 'High'
+                                        ? 'bg-orange-100 text-orange-800 border-orange-300'
+                                        : contractRisk === 'Medium'
+                                        ? 'bg-amber-100 text-amber-800 border-amber-300'
+                                        : 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                                    }`}>
+                                      <span className={`w-1 h-1 rounded-full ${
+                                        contractRisk === 'Critical'
+                                          ? 'bg-rose-600'
+                                          : contractRisk === 'High'
+                                          ? 'bg-orange-500'
+                                          : contractRisk === 'Medium'
+                                          ? 'bg-amber-500'
+                                          : 'bg-emerald-500'
+                                      }`} />
+                                      {contractRisk}
+                                    </span>
+                                  )}
                                 </div>
                               </div>
 
@@ -1680,6 +1788,38 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                 <span className="text-slate-500">Status</span>
                 <span className="font-bold text-[#C84B31] bg-red-50 px-2 py-0.5 rounded">
                   {selectedContractObj?.status || activeEventDetail.status || 'Expiring Soon'}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between py-1 border-b border-[#FAF8F5]">
+                <span className="text-slate-500">Risk Classification</span>
+                <span className={`font-bold text-[11px] px-2 py-0.5 rounded-md border flex items-center gap-1.5 ${
+                  (selectedContractObj?.riskLevel || activeEventDetail.priority) === 'Critical'
+                    ? 'bg-rose-50 text-rose-800 border-rose-200'
+                    : (selectedContractObj?.riskLevel || activeEventDetail.priority) === 'High'
+                    ? 'bg-orange-50 text-orange-800 border-orange-200'
+                    : (selectedContractObj?.riskLevel || activeEventDetail.priority) === 'Medium'
+                    ? 'bg-amber-50 text-amber-800 border-amber-200'
+                    : 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                }`}>
+                  <span className={`w-2 h-2 rounded-full ${
+                    (selectedContractObj?.riskLevel || activeEventDetail.priority) === 'Critical'
+                      ? 'bg-rose-600 ring-1 ring-rose-300'
+                      : (selectedContractObj?.riskLevel || activeEventDetail.priority) === 'High'
+                      ? 'bg-orange-500 ring-1 ring-orange-300'
+                      : (selectedContractObj?.riskLevel || activeEventDetail.priority) === 'Medium'
+                      ? 'bg-amber-500 ring-1 ring-amber-300'
+                      : 'bg-emerald-500 ring-1 ring-emerald-300'
+                  }`} />
+                  {selectedContractObj?.riskLevel || activeEventDetail.priority || 'Medium'}
+                  {selectedContractObj?.riskScore !== undefined ? ` (${selectedContractObj.riskScore}/100)` : ''}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between py-1 border-b border-[#FAF8F5]">
+                <span className="text-slate-500">Renewal Status</span>
+                <span className="font-semibold text-slate-800">
+                  {selectedContractObj?.renewalStatus || selectedContractObj?.renewalStage || activeEventDetail.status || 'Active'}
                 </span>
               </div>
 
