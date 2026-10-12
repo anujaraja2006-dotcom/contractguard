@@ -191,7 +191,7 @@ export const ContractDetailModal: React.FC<ContractDetailModalProps> = ({
 
             {/* Expiry Date */}
             <div className="p-2.5 rounded-lg bg-white border border-stone-200">
-              <span className="text-[10px] text-stone-400 uppercase font-medium">End Date</span>
+              <span className="text-[10px] text-stone-400 uppercase font-medium">Expiry Date</span>
               <div className="font-semibold text-stone-900 mt-0.5">
                 {formatDate(contract.endDate)}
               </div>
@@ -268,6 +268,21 @@ export const ContractDetailModal: React.FC<ContractDetailModalProps> = ({
                     </div>
                   </div>
                 </div>
+
+                {/* Extracted Renewal Terms */}
+                {contract.renewalTerms && (
+                  <div className="p-3.5 rounded-xl bg-amber-50/70 border border-amber-200 space-y-1">
+                    <div className="flex items-center justify-between text-[11px] font-bold text-amber-900 uppercase">
+                      <span>Renewal Terms &amp; Conditions</span>
+                      <span className="text-[10px] text-amber-700 bg-amber-100/70 px-1.5 py-0.2 rounded border border-amber-300">
+                        {contract.autoRenewal ? 'Auto-Renewal: Enabled' : 'Auto-Renewal: Disabled'}
+                      </span>
+                    </div>
+                    <p className="text-xs text-stone-700 leading-relaxed italic">
+                      &ldquo;{contract.renewalTerms}&rdquo;
+                    </p>
+                  </div>
+                )}
 
                 {contract.customFields && contract.customFields.length > 0 && (
                   <div className="pt-3 border-t border-stone-100">
@@ -381,11 +396,26 @@ export const ContractDetailModal: React.FC<ContractDetailModalProps> = ({
                       className="bg-white p-4 rounded-xl border border-stone-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-stone-100 flex items-center justify-center text-stone-600 shrink-0">
-                          <FileText className="w-5 h-5 text-emerald-800" />
-                        </div>
+                        {doc.storagePath && doc.storagePath.startsWith('data:image/') ? (
+                          <img
+                            src={doc.storagePath}
+                            alt="Scanned Document"
+                            className="w-10 h-10 rounded-lg object-cover border border-stone-300 shrink-0"
+                          />
+                        ) : (
+                          <div className="w-10 h-10 rounded-lg bg-stone-100 flex items-center justify-center text-stone-600 shrink-0">
+                            <FileText className="w-5 h-5 text-emerald-800" />
+                          </div>
+                        )}
                         <div>
-                          <div className="text-xs font-semibold text-stone-900">{doc.fileName}</div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-semibold text-stone-900">{doc.fileName}</span>
+                            {doc.uploadedBy.includes('Camera') && (
+                              <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200">
+                                📷 Camera Scan
+                              </span>
+                            )}
+                          </div>
                           <div className="text-[11px] text-stone-400 mt-0.5">
                             {doc.fileSize} • Uploaded by {doc.uploadedBy} on {formatDate(doc.uploadDate)}
                           </div>

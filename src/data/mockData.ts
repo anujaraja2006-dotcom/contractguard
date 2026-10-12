@@ -95,6 +95,7 @@ export const INITIAL_CONTRACTS: Contract[] = [
     renewalDate: '2026-10-25',
     noticePeriodDays: 60,
     autoRenewal: false,
+    renewalTerms: 'Contract renews upon mutual written consent with 60 days prior notice. Pricing adjustments capped at 5% CPI per annum.',
     contractValue: 2400000,
     currency: 'INR',
     paymentFrequency: 'Quarterly',

@@ -12,10 +12,13 @@ import {
   Calendar,
   X,
   FileCheck,
+  Camera,
 } from 'lucide-react';
 import { ContractDocument, Contract } from '../types';
 import { TranslationDictionary } from '../i18n/translations';
 import { formatCurrency, formatDate } from '../utils/contractUtils';
+import { extractContractTermsFromDocument } from '../utils/documentProcessor';
+import { CameraContractScannerModal } from './CameraContractScannerModal';
 
 interface DocumentsViewProps {
   documents: ContractDocument[];
@@ -35,9 +38,10 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [isCameraScannerOpen, setIsCameraScannerOpen] = useState(false);
   const [dragOver, setDragOver] = useState(false);
 
-  // Simulated OCR Extraction States
+  // OCR Extraction States
   const [isExtracting, setIsExtracting] = useState(false);
   const [extractedData, setExtractedData] = useState<any>(null);
   const [uploadedFileTemp, setUploadedFileTemp] = useState<File | null>(null);
@@ -57,36 +61,43 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
     e.preventDefault();
     setDragOver(false);
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      processSimulatedOcr(e.dataTransfer.files[0]);
+      processDocumentOcr(e.dataTransfer.files[0]);
     }
   };
 
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      processSimulatedOcr(e.target.files[0]);
+      processDocumentOcr(e.target.files[0]);
     }
   };
 
-  const processSimulatedOcr = (file: File) => {
+  const processDocumentOcr = async (file: File) => {
     setUploadedFileTemp(file);
     setIsExtracting(true);
 
-    // Simulate smart OCR parsing
-    setTimeout(() => {
+    try {
+      const result = await extractContractTermsFromDocument({ file });
+      if (result.success && result.data) {
+        setExtractedData({
+          contractName: result.data.contractName || file.name.replace(/\.[^/.]+$/, '').replace(/_/g, ' '),
+          vendorName: result.data.companyName || 'Enterprise Partner Ltd',
+          startDate: result.data.startDate || new Date().toISOString().split('T')[0],
+          endDate: result.data.expiryDate,
+          expiryDate: result.data.expiryDate,
+          renewalDate: result.data.renewalDate || result.data.expiryDate,
+          renewalTerms: result.data.renewalTerms,
+          noticePeriod: result.data.noticePeriodDays || 30,
+          contractValue: result.data.contractValue || 1500000,
+          currency: result.data.currency || 'INR',
+          paymentTerms: result.data.paymentFrequency || 'Annual Net 30',
+          autoRenewal: result.data.autoRenewal ?? true,
+        });
+      }
+    } catch (e) {
+      console.error('Error in document OCR:', e);
+    } finally {
       setIsExtracting(false);
-      const cleanName = file.name.replace(/\.[^/.]+$/, '').replace(/_/g, ' ');
-      setExtractedData({
-        contractName: `${cleanName} Service Agreement`,
-        vendorName: 'Infosys BPM Ltd',
-        startDate: '2026-01-15',
-        endDate: '2027-01-14',
-        renewalDate: '2027-01-14',
-        noticePeriod: 45,
-        contractValue: 7800000,
-        currency: 'INR',
-        paymentTerms: 'Quarterly Advance Net 30',
-      });
-    }, 1200);
+    }
   };
 
   const handleConfirmOcrSave = () => {
@@ -129,13 +140,23 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
           </p>
         </div>
 
-        <button
-          onClick={() => setIsUploadModalOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 text-xs font-semibold uppercase tracking-wider rounded-lg bg-[#243029] hover:bg-[#1A231E] text-white shadow-sm transition-colors cursor-pointer"
-        >
-          <UploadCloud className="w-4 h-4" />
-          <span>Upload Agreement</span>
-        </button>
+        <div className="flex items-center gap-2.5">
+          <button
+            onClick={() => setIsCameraScannerOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 text-xs font-semibold uppercase tracking-wider rounded-lg bg-emerald-800 hover:bg-emerald-900 text-white shadow-sm transition-colors cursor-pointer"
+            title="Scan physical contract using device camera"
+          >
+            <Camera className="w-4 h-4 text-emerald-300" />
+            <span>Scan with Camera</span>
+          </button>
+          <button
+            onClick={() => setIsUploadModalOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 text-xs font-semibold uppercase tracking-wider rounded-lg bg-[#243029] hover:bg-[#1A231E] text-white shadow-sm transition-colors cursor-pointer"
+          >
+            <UploadCloud className="w-4 h-4" />
+            <span>Upload Agreement</span>
+          </button>
+        </div>
       </div>
 
       {/* 2. Search & Category Filter */}
@@ -200,16 +221,23 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
               </div>
 
               {doc.extractedFields && (
-                <div className="mt-3 p-2.5 rounded-lg bg-stone-50 border border-stone-100 text-[11px] space-y-1">
+                <div className="mt-3 p-2.5 rounded-lg bg-stone-50 border border-stone-100 text-[11px] space-y-1.5">
+                  <div className="flex items-center justify-between text-stone-500">
+                    <span>Expiry Date:</span>
+                    <strong className="text-emerald-900 font-bold">
+                      {formatDate(doc.extractedFields.expiryDate || doc.extractedFields.endDate || '')}
+                    </strong>
+                  </div>
+                  {doc.extractedFields.renewalTerms && (
+                    <div className="text-[10px] text-stone-600 line-clamp-2 italic bg-white p-1.5 rounded border border-stone-100">
+                      &ldquo;{doc.extractedFields.renewalTerms}&rdquo;
+                    </div>
+                  )}
                   <div className="flex items-center justify-between text-stone-500">
                     <span>Extracted Value:</span>
                     <strong className="text-stone-900">
                       {formatCurrency(doc.extractedFields.contractValue || 0, doc.extractedFields.currency || 'INR')}
                     </strong>
-                  </div>
-                  <div className="flex items-center justify-between text-stone-500">
-                    <span>Renewal Target:</span>
-                    <span className="text-stone-800">{formatDate(doc.extractedFields.renewalDate || '')}</span>
                   </div>
                 </div>
               )}
@@ -217,7 +245,31 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
 
             <div className="mt-5 pt-3 border-t border-stone-100 flex items-center justify-between text-[11px] text-stone-400">
               <span>{doc.fileSize} • {doc.version}</span>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
+                {onLinkExtractedToContract && doc.extractedFields && (
+                  <button
+                    onClick={() => {
+                      onLinkExtractedToContract({
+                        name: doc.contractName || doc.extractedFields?.contractName,
+                        companyName: doc.extractedFields?.vendorName,
+                        endDate: doc.extractedFields?.expiryDate || doc.extractedFields?.endDate,
+                        expiryDate: doc.extractedFields?.expiryDate || doc.extractedFields?.endDate,
+                        renewalDate: doc.extractedFields?.renewalDate,
+                        renewalTerms: doc.extractedFields?.renewalTerms,
+                        startDate: doc.extractedFields?.startDate,
+                        noticePeriodDays: doc.extractedFields?.noticePeriod,
+                        contractValue: doc.extractedFields?.contractValue,
+                        currency: doc.extractedFields?.currency,
+                        autoRenewal: doc.extractedFields?.autoRenewal,
+                      });
+                    }}
+                    className="p-1 px-2 rounded hover:bg-emerald-50 text-emerald-800 text-[10px] font-bold border border-emerald-200 flex items-center gap-1 cursor-pointer"
+                    title="Auto-Fill New Contract Form with Extracted Terms"
+                  >
+                    <Sparkles className="w-3 h-3 text-emerald-600" />
+                    <span>Auto-Fill Form</span>
+                  </button>
+                )}
                 <button
                   className="p-1 rounded hover:bg-stone-100 text-stone-600"
                   title="Preview document"
@@ -280,15 +332,28 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                   Drag and drop your contract PDF, DOCX, or scanned image
                 </h4>
                 <p className="text-xs text-stone-500 mt-1">Supports PDF, DOCX, PNG up to 25MB</p>
-                <label className="mt-4 inline-block px-4 py-2 text-xs font-semibold uppercase tracking-wider rounded-lg bg-[#243029] text-white hover:bg-[#1A231E] transition-colors cursor-pointer">
-                  Browse Files
-                  <input
-                    type="file"
-                    accept=".pdf,.docx,.png,.jpg,.jpeg"
-                    onChange={handleFileInput}
-                    className="hidden"
-                  />
-                </label>
+                <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+                  <label className="inline-block px-4 py-2 text-xs font-semibold uppercase tracking-wider rounded-lg bg-[#243029] text-white hover:bg-[#1A231E] transition-colors cursor-pointer">
+                    Browse Files
+                    <input
+                      type="file"
+                      accept=".pdf,.docx,.png,.jpg,.jpeg"
+                      onChange={handleFileInput}
+                      className="hidden"
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsUploadModalOpen(false);
+                      setIsCameraScannerOpen(true);
+                    }}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold uppercase tracking-wider rounded-lg bg-emerald-800 text-white hover:bg-emerald-900 transition-colors cursor-pointer"
+                  >
+                    <Camera className="w-3.5 h-3.5 text-emerald-300" />
+                    <span>Scan with Camera</span>
+                  </button>
+                </div>
 
                 {isExtracting && (
                   <div className="mt-4 p-3 rounded-lg bg-emerald-50 text-emerald-800 text-xs flex items-center justify-center gap-2">
@@ -394,20 +459,46 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                   </div>
                 </div>
 
-                <div className="flex items-center justify-end gap-3 pt-4 border-t border-stone-200">
+                <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-stone-200">
                   <button
                     type="button"
                     onClick={() => setExtractedData(null)}
-                    className="px-4 py-2 text-xs font-medium text-stone-600 hover:text-stone-900"
+                    className="px-3 py-2 text-xs font-medium text-stone-600 hover:text-stone-900 cursor-pointer"
                   >
                     Re-upload
                   </button>
                   <button
                     type="button"
                     onClick={handleConfirmOcrSave}
-                    className="px-6 py-2.5 bg-[#243029] hover:bg-[#1A231E] text-white text-xs font-semibold uppercase tracking-wider rounded-lg shadow-sm"
+                    className="px-4 py-2 bg-stone-800 hover:bg-stone-900 text-white text-xs font-semibold uppercase tracking-wider rounded-lg shadow-xs cursor-pointer"
                   >
-                    Confirm &amp; Archive Document
+                    Archive Only
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const dataToLink = { ...extractedData };
+                      handleConfirmOcrSave();
+                      if (onLinkExtractedToContract) {
+                        onLinkExtractedToContract({
+                          name: dataToLink.contractName,
+                          companyName: dataToLink.vendorName,
+                          endDate: dataToLink.expiryDate || dataToLink.endDate,
+                          expiryDate: dataToLink.expiryDate || dataToLink.endDate,
+                          renewalDate: dataToLink.renewalDate || dataToLink.endDate,
+                          renewalTerms: dataToLink.renewalTerms,
+                          startDate: dataToLink.startDate,
+                          noticePeriodDays: dataToLink.noticePeriod,
+                          contractValue: dataToLink.contractValue,
+                          currency: dataToLink.currency,
+                          autoRenewal: dataToLink.autoRenewal ?? true,
+                        });
+                      }
+                    }}
+                    className="px-4 py-2 bg-emerald-800 hover:bg-emerald-900 text-white text-xs font-semibold uppercase tracking-wider rounded-lg shadow-sm flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-emerald-300" />
+                    <span>Auto-Fill Contract Form</span>
                   </button>
                 </div>
               </div>
@@ -415,6 +506,21 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
           </div>
         </div>
       )}
+      {/* Camera Physical Contract Scanner Modal */}
+      <CameraContractScannerModal
+        isOpen={isCameraScannerOpen}
+        onClose={() => setIsCameraScannerOpen(false)}
+        onDocumentScannedAndAttached={(scannedDoc, extractedTerms) => {
+          onUploadDocument(scannedDoc);
+          if (onLinkExtractedToContract) {
+            onLinkExtractedToContract({
+              ...extractedTerms,
+              attachedDocumentId: scannedDoc.id,
+              attachedDocumentName: scannedDoc.fileName,
+            });
+          }
+        }}
+      />
     </div>
   );
 };

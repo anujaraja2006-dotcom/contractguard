@@ -32,7 +32,6 @@ interface NavbarProps {
   onMarkNotificationRead: (id: string) => void;
   onClearNotifications: () => void;
   onOpenAddContract: () => void;
-  onOpenAiAssistant: () => void;
   onOpenLanguageModal: () => void;
   currentUser?: UserProfile | null;
   isAuthenticated?: boolean;
@@ -53,7 +52,6 @@ export const Navbar: React.FC<NavbarProps> = ({
   onMarkNotificationRead,
   onClearNotifications,
   onOpenAddContract,
-  onOpenAiAssistant,
   onOpenLanguageModal,
   currentUser,
   isAuthenticated = true,

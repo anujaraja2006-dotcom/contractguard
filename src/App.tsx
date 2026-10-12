@@ -44,7 +44,12 @@ import {
   NotificationItem,
   UserRole,
   LanguageCode,
+  CompanyAutoRenewPolicy,
 } from './types';
+import {
+  INITIAL_COMPANY_POLICIES,
+  getCompanyAutoRenewPolicy,
+} from './utils/policyUtils';
 import {
   INDIAN_LANGUAGES,
   IndianLanguage,
@@ -150,6 +155,33 @@ export function App() {
   const [comments, setComments] = useState<CommentItem[]>(mockComments);
   const [notifications, setNotifications] = useState<NotificationItem[]>(mockNotifications);
 
+  // Global Auto-Renew Policies per Company Context
+  const [autoRenewPolicies, setAutoRenewPolicies] = useState<Record<string, CompanyAutoRenewPolicy>>(() => {
+    try {
+      const saved = localStorage.getItem('contractguard_autorenew_policies');
+      if (saved) return JSON.parse(saved);
+    } catch {
+      // ignore
+    }
+    return INITIAL_COMPANY_POLICIES;
+  });
+
+  const handleUpdateCompanyPolicy = (companyId: string, policy: CompanyAutoRenewPolicy) => {
+    setAutoRenewPolicies((prev) => {
+      const next = { ...prev, [companyId]: policy };
+      try {
+        localStorage.setItem('contractguard_autorenew_policies', JSON.stringify(next));
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+    showToast(`Auto-Renew policy updated for ${policy.companyName}.`, 'success');
+  };
+
+  const currentCompanyPolicy =
+    autoRenewPolicies[currentCompany.id] || getCompanyAutoRenewPolicy(currentCompany);
+
   // Modals & Panels State
   const [selectedContract, setSelectedContract] = useState<Contract | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
@@ -250,14 +282,19 @@ export function App() {
     setNotifications([]);
   };
 
+  // State for prefilling contract form from automated document extraction
+  const [formPrefillData, setFormPrefillData] = useState<Partial<Contract> | null>(null);
+
   // Contract CRUD handlers
-  const handleOpenAddContract = () => {
+  const handleOpenAddContract = (prefill?: Partial<Contract>) => {
     setContractToEdit(null);
+    setFormPrefillData(prefill || null);
     setIsFormModalOpen(true);
   };
 
   const handleOpenEditContract = (contract: Contract) => {
     setContractToEdit(contract);
+    setFormPrefillData(null);
     setIsFormModalOpen(true);
   };
 
@@ -294,12 +331,23 @@ export function App() {
         ownerName: currentUser.name,
         startDate: contractData.startDate || new Date().toISOString().split('T')[0],
         endDate: contractData.endDate || new Date().toISOString().split('T')[0],
+        expiryDate: contractData.expiryDate || contractData.endDate || new Date().toISOString().split('T')[0],
         renewalDate:
           contractData.renewalDate ||
           contractData.endDate ||
           new Date().toISOString().split('T')[0],
-        noticePeriodDays: contractData.noticePeriodDays ?? 30,
-        autoRenewal: contractData.autoRenewal || false,
+        renewalTerms:
+          contractData.renewalTerms ||
+          currentCompanyPolicy.defaultRenewalTermsTemplate ||
+          '',
+        noticePeriodDays:
+          contractData.noticePeriodDays ??
+          currentCompanyPolicy.defaultNoticePeriodDays ??
+          60,
+        autoRenewal:
+          contractData.autoRenewal ??
+          currentCompanyPolicy.defaultAutoRenewalEnabled ??
+          true,
         contractValue: contractData.contractValue || 0,
         currency: contractData.currency || 'INR',
         paymentFrequency: contractData.paymentFrequency || 'Annual',
@@ -313,27 +361,75 @@ export function App() {
 
       setContracts((prev) => [newContract, ...prev]);
 
-      // Automatically schedule L1 reminder
+      // Link attached document (from camera scan or upload) to new contract entry
+      if ((contractData as any).attachedDocumentId) {
+        const attachedDocId = (contractData as any).attachedDocumentId;
+        setDocuments((prev) =>
+          prev.map((doc) =>
+            doc.id === attachedDocId
+              ? {
+                  ...doc,
+                  contractId: newContract.id,
+                  contractName: newContract.name,
+                }
+              : doc
+          )
+        );
+      }
+
+      // Automatically schedule multi-tier escalation reminders from Company Auto-Renew Policy
+      const targetCompanyPolicy =
+        autoRenewPolicies[newContract.companyId] || currentCompanyPolicy;
       const renewalDateObj = new Date(newContract.renewalDate);
-      const reminderDate30 = new Date(renewalDateObj);
-      reminderDate30.setDate(reminderDate30.getDate() - 30);
+      const newReminders: Reminder[] = [];
 
-      const autoReminder: Reminder = {
-        id: `rem-${Date.now()}`,
-        contractId: newContract.id,
-        contractName: newContract.name,
-        companyName: newContract.companyName,
-        reminderDate: reminderDate30.toISOString().split('T')[0],
-        daysBeforeExpiry: 30,
-        reminderType: '30-Day Notice & Renewal Review',
-        recipientEmail: newContract.contactEmail,
-        recipientRole: 'Responsible Employee',
-        status: 'Scheduled',
-        escalationLevel: 1,
-      };
-      setReminders((prev) => [autoReminder, ...prev]);
+      if (targetCompanyPolicy.autoScheduleReminders && targetCompanyPolicy.escalationWorkflow) {
+        const wf = targetCompanyPolicy.escalationWorkflow;
+        const tiers = [wf.l1, wf.l2, wf.l3].filter(Boolean);
 
-      showToast(`Contract "${newContract.name}" created with automated reminders!`, 'success');
+        tiers.forEach((tier) => {
+          tier.triggerDaysBeforeExpiry.forEach((days) => {
+            const reminderDate = new Date(renewalDateObj);
+            reminderDate.setDate(reminderDate.getDate() - days);
+
+            newReminders.push({
+              id: `rem-${Date.now()}-${tier.tier}-${days}`,
+              contractId: newContract.id,
+              contractName: newContract.name,
+              companyName: newContract.companyName,
+              reminderDate: reminderDate.toISOString().split('T')[0],
+              daysBeforeExpiry: days,
+              reminderType: `${days}-Day Notice (${tier.name})`,
+              recipientEmail: newContract.contactEmail,
+              recipientRole: tier.recipientRole,
+              status: 'Scheduled',
+              escalationLevel: tier.tier as 1 | 2 | 3,
+            });
+          });
+        });
+      } else {
+        const fallbackDays = newContract.noticePeriodDays || 30;
+        const reminderDateFallback = new Date(renewalDateObj);
+        reminderDateFallback.setDate(reminderDateFallback.getDate() - fallbackDays);
+
+        newReminders.push({
+          id: `rem-${Date.now()}`,
+          contractId: newContract.id,
+          contractName: newContract.name,
+          companyName: newContract.companyName,
+          reminderDate: reminderDateFallback.toISOString().split('T')[0],
+          daysBeforeExpiry: fallbackDays,
+          reminderType: `${fallbackDays}-Day Renewal Review Notice`,
+          recipientEmail: newContract.contactEmail,
+          recipientRole: 'Responsible Employee',
+          status: 'Scheduled',
+          escalationLevel: 1,
+        });
+      }
+
+      setReminders((prev) => [...newReminders, ...prev]);
+
+      showToast(`Contract "${newContract.name}" created with company auto-renew escalation workflow!`, 'success');
     }
   };
 
@@ -832,6 +928,13 @@ export function App() {
               setDocuments((prev) => [newDoc, ...prev]);
               showToast(`Document "${newDoc.fileName}" verified and archived.`, 'success');
             }}
+            onLinkExtractedToContract={(extractedData) => {
+              handleOpenAddContract(extractedData);
+              showToast(
+                `AI Extracted terms loaded: Expiry Date & Renewal Terms auto-filled.`,
+                'success'
+              );
+            }}
           />
         )}
 
@@ -891,6 +994,8 @@ export function App() {
               setIsNewlyCreatedProfile(false);
               setIsProfileModalOpen(true);
             }}
+            autoRenewPolicies={autoRenewPolicies}
+            onUpdateCompanyPolicy={handleUpdateCompanyPolicy}
           />
         )}
       </main>
@@ -919,11 +1024,16 @@ export function App() {
       {/* Add / Edit Contract Modal */}
       <ContractFormModal
         isOpen={isFormModalOpen}
-        onClose={() => setIsFormModalOpen(false)}
+        onClose={() => {
+          setIsFormModalOpen(false);
+          setFormPrefillData(null);
+        }}
         onSave={handleSaveContract}
         contractToEdit={contractToEdit}
         departments={localizedDepartments}
         t={t}
+        initialPrefillData={formPrefillData}
+        companyAutoRenewPolicy={currentCompanyPolicy}
       />
 
       {/* AI Assistant Drawer */}
@@ -932,6 +1042,11 @@ export function App() {
         onClose={() => setIsAIAssistantOpen(false)}
         contracts={localizedContracts}
         currentLanguage={currentLanguage}
+        companyName={currentCompany.name}
+        onSelectContract={(contract) => {
+          setSelectedContract(contract);
+          setIsDetailModalOpen(true);
+        }}
       />
 
       {/* Language Selection Modal (Triggered by user choice) */}

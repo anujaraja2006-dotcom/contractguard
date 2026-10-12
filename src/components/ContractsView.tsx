@@ -15,6 +15,7 @@ import {
   Clock,
   Building2,
   Calendar,
+  Sparkles,
 } from 'lucide-react';
 import { Contract, ContractType, RiskLevel, ContractStatus } from '../types';
 import { TranslationDictionary } from '../i18n/translations';
@@ -102,17 +103,25 @@ export const ContractsView: React.FC<ContractsViewProps> = ({
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
           <button
             onClick={onExportCsv}
-            className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-xl border border-stone-300 bg-white hover:bg-stone-50 text-stone-700 transition-colors cursor-pointer shadow-xs"
+            className="flex items-center gap-2 px-3.5 py-2.5 text-xs sm:text-sm font-semibold rounded-xl border border-stone-300 bg-white hover:bg-stone-50 text-stone-700 transition-colors cursor-pointer shadow-xs"
           >
             <Download className="w-4 h-4" />
             <span>{t.exportCsv}</span>
           </button>
           <button
             onClick={onAddContract}
-            className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold uppercase tracking-wider rounded-xl bg-[#243029] hover:bg-[#1A231E] text-white shadow-sm transition-colors cursor-pointer"
+            className="flex items-center gap-2 px-3.5 py-2.5 text-xs sm:text-sm font-bold rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-300 transition-colors cursor-pointer shadow-xs"
+            title="Upload contract PDF to automatically extract Expiry Date & Renewal Terms"
+          >
+            <Sparkles className="w-4 h-4 text-emerald-600" />
+            <span>AI Document Import</span>
+          </button>
+          <button
+            onClick={onAddContract}
+            className="flex items-center gap-2 px-4 sm:px-5 py-2.5 text-xs sm:text-sm font-bold uppercase tracking-wider rounded-xl bg-[#243029] hover:bg-[#1A231E] text-white shadow-sm transition-colors cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             <span>{t.addContract}</span>

@@ -52,6 +52,40 @@ export interface UserProfile {
 
 export type User = UserProfile;
 
+export interface EscalationTierPolicy {
+  tier: 1 | 2 | 3;
+  name: string;
+  triggerDaysBeforeExpiry: number[]; // e.g. [90, 60, 30] for L1
+  recipientRole: string; // 'Contract Owner', 'Department Head', 'Executive Legal Counsel'
+  autoDispatch: boolean;
+  channels: {
+    email: boolean;
+    inApp: boolean;
+    whatsapp: boolean;
+    sms: boolean;
+  };
+  actionRequired: string;
+}
+
+export interface CompanyAutoRenewPolicy {
+  companyId: string;
+  companyName: string;
+  defaultNoticePeriodDays: number;
+  defaultAutoRenewalEnabled: boolean;
+  defaultRenewalDurationMonths: number;
+  priceEscalationCapPercent: number;
+  renegotiationWindowDays: number;
+  autoScheduleReminders: boolean;
+  defaultRenewalTermsTemplate: string;
+  escalationWorkflow: {
+    l1: EscalationTierPolicy;
+    l2: EscalationTierPolicy;
+    l3: EscalationTierPolicy;
+  };
+  updatedAt: string;
+  updatedBy: string;
+}
+
 export interface Company {
   id: string;
   name: string;
@@ -63,6 +97,7 @@ export interface Company {
   contactEmail: string;
   contactPhone: string;
   address: string;
+  autoRenewPolicy?: CompanyAutoRenewPolicy;
 }
 
 export interface Department {
@@ -136,8 +171,10 @@ export interface Contract {
   ownerId: string;
   ownerName: string;
   startDate: string; // YYYY-MM-DD
-  endDate: string; // YYYY-MM-DD
+  endDate: string; // YYYY-MM-DD (Expiry Date)
+  expiryDate?: string; // YYYY-MM-DD
   renewalDate: string; // YYYY-MM-DD
+  renewalTerms?: string; // Extracted renewal terms & conditions
   noticePeriodDays: number;
   autoRenewal: boolean;
   contractValue: number;
@@ -213,11 +250,14 @@ export interface ContractDocument {
     vendorName?: string;
     startDate?: string;
     endDate?: string;
+    expiryDate?: string;
     renewalDate?: string;
+    renewalTerms?: string;
     noticePeriod?: number;
     contractValue?: number;
     currency?: string;
     paymentTerms?: string;
+    autoRenewal?: boolean;
   };
 }
 
